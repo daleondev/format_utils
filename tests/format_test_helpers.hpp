@@ -16,7 +16,7 @@ static auto split_str(const std::string &ptr_str, char delimiter) -> std::vector
     // clang-format on
 }
 
-bool is_valid_hex(std::string_view s)
+auto is_valid_hex(std::string_view s) -> bool
 {
     if (s.empty())
         return false;
