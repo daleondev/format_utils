@@ -56,7 +56,7 @@ struct fmtu::Adapter<MyClass>
 {
     using Fields = std::tuple<Field<"i", &MyClass::getI>,
                               Field<"inner", &MyClass::getInner>,
-                              //   Field<"innerReflectable", &MyClass::getInnerReflectable>,
+                              Field<"innerReflectable", &MyClass::getInnerReflectable>,
                               Field<"j", &MyClass::m_j>>;
 };
 

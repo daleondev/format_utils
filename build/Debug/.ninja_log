@@ -1,7 +1,0 @@
-# ninja log v7
-2	2964	7909557092522603	samples/CMakeFiles/format_sample.dir/format_sample.cpp.obj	f9809c9ecdc66027
-2980	3278	7909557122296756	samples/format_sample.exe	111ba16060b1662e
-7	3049	7909557685107850	samples/CMakeFiles/format_sample.dir/format_sample.cpp.obj	f9809c9ecdc66027
-3051	3393	7909557715554946	samples/format_sample.exe	111ba16060b1662e
-8	4206	7909559771202681	samples/CMakeFiles/format_sample.dir/format_sample.cpp.obj	f9809c9ecdc66027
-4208	4773	7909559813204996	samples/format_sample.exe	111ba16060b1662e

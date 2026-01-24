@@ -122,21 +122,23 @@ namespace fmtu
         template <HasAdapter T>
         consteval auto adapter_names()
         {
+            using Type = std::remove_cvref_t<T>;
             return []<size_t... Is>(std::index_sequence<Is...>)
             {
                 return std::array<std::string_view, sizeof...(Is)>{
-                    std::tuple_element_t<Is, typename Adapter<T>::Fields>::NAME...};
-            }(std::make_index_sequence<std::tuple_size_v<typename Adapter<T>::Fields>>{});
+                    std::tuple_element_t<Is, typename Adapter<Type>::Fields>::NAME...};
+            }(std::make_index_sequence<std::tuple_size_v<typename Adapter<Type>::Fields>>{});
         }
 
         template <HasAdapter T>
         consteval auto adapter_types()
         {
+            using Type = std::remove_cvref_t<T>;
             return []<size_t... Is>(std::index_sequence<Is...>)
             {
                 return std::type_identity<
-                    std::tuple<typename std::tuple_element_t<Is, typename Adapter<T>::Fields>::Type...>>{};
-            }(std::make_index_sequence<std::tuple_size_v<typename Adapter<T>::Fields>>{});
+                    std::tuple<typename std::tuple_element_t<Is, typename Adapter<Type>::Fields>::Type...>>{};
+            }(std::make_index_sequence<std::tuple_size_v<typename Adapter<Type>::Fields>>{});
         }
 
         template <HasAdapter T>
@@ -162,19 +164,21 @@ namespace fmtu
         template <Reflectable T>
         consteval auto reflect_names()
         {
+            using Type = std::remove_cvref_t<T>;
             return []<size_t... Is>(std::index_sequence<Is...>)
             {
-                return std::array<std::string_view, sizeof...(Is)>{reflect::member_name<Is, T>()...};
-            }(std::make_index_sequence<reflect::size<T>()>{});
+                return std::array<std::string_view, sizeof...(Is)>{reflect::member_name<Is, Type>()...};
+            }(std::make_index_sequence<reflect::size<Type>()>{});
         }
 
         template <Reflectable T>
         consteval auto reflect_types()
         {
+            using Type = std::remove_cvref_t<T>;
             return []<size_t... Is>(std::index_sequence<Is...>)
             {
-                return std::type_identity<std::tuple<reflect::member_type<Is, T>...>>{};
-            }(std::make_index_sequence<reflect::size<T>()>{});
+                return std::type_identity<std::tuple<reflect::member_type<Is, Type>...>>{};
+            }(std::make_index_sequence<reflect::size<Type>()>{});
         }
 
         template <Reflectable T>
