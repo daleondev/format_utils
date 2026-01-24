@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/Dev.Windows-Desktop/Desktop/FormatUtils/build/Debug/cmake_install.cmake",
+		"C:/Users/Dev.Windows-Desktop/Desktop/FormatUtils/build/Debug/samples/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

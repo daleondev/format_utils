@@ -1,0 +1,5 @@
+C:/Users/Dev.Windows-Desktop/Desktop/FormatUtils/build/Debug/CMakeFiles/edit_cache.dir
+C:/Users/Dev.Windows-Desktop/Desktop/FormatUtils/build/Debug/CMakeFiles/rebuild_cache.dir
+C:/Users/Dev.Windows-Desktop/Desktop/FormatUtils/build/Debug/samples/CMakeFiles/format_sample.dir
+C:/Users/Dev.Windows-Desktop/Desktop/FormatUtils/build/Debug/samples/CMakeFiles/edit_cache.dir
+C:/Users/Dev.Windows-Desktop/Desktop/FormatUtils/build/Debug/samples/CMakeFiles/rebuild_cache.dir
