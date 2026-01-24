@@ -49,4 +49,12 @@ target_compile_features(
     cxx_std_23
 )
 
-add_subdirectory(samples)
+option(BUILD_SAMPLES "Build the sample executables." ON)
+if(BUILD_SAMPLES)
+    add_subdirectory(samples)
+endif()
+
+option(BUILD_TESTS "Build the tests." ON)
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
