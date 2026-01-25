@@ -9,6 +9,7 @@
 
 #include <reflect>
 
+#include <algorithm>
 #include <array>
 #include <concepts>
 #include <format>
@@ -16,6 +17,7 @@
 #include <optional>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 namespace fmtu
 {
@@ -442,12 +444,21 @@ namespace fmtu
             }
         };
 
+        template<ScopedEnum T>
+        consteval auto enum_size() -> std::size_t
+        {
+            constexpr auto min{ reflect::enum_min(T{}) };
+            constexpr auto max{ reflect::enum_max(T{}) };
+            return reflect::detail::enum_cases<T, min, max>.size();
+        }
+
         enum class FmtOptSpecs : char
         {
             Pretty = 'p',
             Json = 'j',
             Verbose = 'v'
         };
+        constexpr auto NUM_FMT_OPT_SPECS{ enum_size<FmtOptSpecs>() };
 
         struct FmtOpts
         {
@@ -466,7 +477,7 @@ namespace fmtu
             { FmtOptSpecs::Verbose, &FmtOpts::verbose }
         }}};
 
-        constexpr Map<FmtOptSpecs, Vector<FmtOptSpecs, 3>, 3> FMT_INCOMPATIBEL_SPECS{{{ 
+        constexpr Map<FmtOptSpecs, Vector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 3> FMT_INCOMPATIBEL_SPECS{{{ 
             { FmtOptSpecs::Pretty,  std::array<FmtOptSpecs, 0>{} },
             { FmtOptSpecs::Json,    std::array{FmtOptSpecs::Verbose} },
             { FmtOptSpecs::Verbose, std::array{FmtOptSpecs::Json} }
@@ -605,7 +616,11 @@ struct std::formatter<T>
     template<typename Ctx>
     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
     {
-        return fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts);
+        auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts) };
+        if (fmtOpts.json && !requires { glz::write_json(T{}); }) {
+            throw std::format_error("JSON formatting not possible");
+        }
+        return it;
     }
 
     template<typename Ctx>
