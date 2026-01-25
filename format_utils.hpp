@@ -18,6 +18,12 @@
 
 namespace fmtu
 {
+#ifdef FMTU_ENABLE_JSON
+    static constexpr bool IS_JSON_ENABLED{ true };
+#else
+    static constexpr bool IS_JSON_ENABLED{ false };
+#endif
+
     namespace detail
     {
         // ---------- Constexpr data types ----------
@@ -197,17 +203,6 @@ namespace fmtu
             static constexpr std::array MEMBER_NAMES{ adapter_names<T>() };
             static consteval auto numMembers() -> std::size_t { return MEMBER_NAMES.size(); };
         };
-
-        template<typename Field>
-        consteval auto field_value() -> decltype(auto)
-        {
-            if constexpr (std::is_member_function_pointer_v<decltype(Field::VALUE)>) {
-                return glz::custom<nullptr, Field::VALUE>;
-            }
-            else {
-                return Field::VALUE;
-            }
-        }
 
         // ---------- Reflectable ----------
 
@@ -552,8 +547,16 @@ namespace fmtu
             }
         }
 
-        template<typename T>
-        concept JsonSerializable = is_type_json_serializable<T>();
+        template<typename Field>
+        consteval auto json_field_value() -> decltype(auto)
+        {
+            if constexpr (std::is_member_function_pointer_v<decltype(Field::VALUE)>) {
+                return glz::custom<nullptr, Field::VALUE>;
+            }
+            else {
+                return Field::VALUE;
+            }
+        }
 
         template<typename T>
         struct JsonAdapter
@@ -563,20 +566,26 @@ namespace fmtu
                 return std::apply(
                   [](auto&&... args) { return glz::object(std::forward<decltype(args)>(args)...); },
                   std::tuple_cat(std::make_tuple(std::tuple_element_t<Is, Fields>::NAME,
-                                                 field_value<std::tuple_element_t<Is, Fields>>())...));
+                                                 json_field_value<std::tuple_element_t<Is, Fields>>())...));
             }(std::make_index_sequence<std::tuple_size_v<Fields>>{});
         };
-
-        static constexpr bool IS_JSON_ENABLED{ true };
 #else
-        static constexpr bool IS_JSON_ENABLED{ false };
+        template<typename T>
+        consteval bool is_type_json_serializable()
+        {
+            return false;
+        }
 #endif
+
+        template<typename T>
+        concept JsonSerializable = is_type_json_serializable<T>();
 
         template<FormatInfo Info, typename Ctx, typename T>
         auto handle_class_opts(Ctx& ctx, const T& t, const FmtOpts& fmt_opts)
           -> std::optional<typename Ctx::iterator>
         {
-            if constexpr (IS_JSON_ENABLED && JsonSerializable<T>) {
+#ifdef FMTU_ENABLE_JSON
+            if constexpr (JsonSerializable<T>) {
                 if (fmt_opts.json) {
                     auto json_str{ (fmt_opts.pretty ? glz::write<glz::opts{ .prettify = true }>(t)
                                                     : glz::write_json(t))
@@ -584,6 +593,7 @@ namespace fmtu
                     return std::format_to(ctx.out(), "{}", json_str);
                 }
             }
+#endif
             if (fmt_opts.pretty) {
                 auto args{ fmtu::detail::make_flat_args_tuple(t) };
                 static constexpr auto fmt{ fmtu::detail::class_pretty_format<Info>() };
@@ -612,7 +622,7 @@ struct std::formatter<T>
     // clang-format off
     static constexpr fmtu::detail::FmtOpts ALLOWED_FMT_OPTS{ 
         .pretty = true,
-        .json = fmtu::detail::IS_JSON_ENABLED,
+        .json = fmtu::IS_JSON_ENABLED,
         .verbose = true 
     };
     // clang-format on
@@ -623,7 +633,7 @@ struct std::formatter<T>
     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
     {
         auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts) };
-        if constexpr (fmtu::detail::IS_JSON_ENABLED) {
+        if constexpr (fmtu::IS_JSON_ENABLED) {
             if (fmtOpts.json) {
                 if constexpr (!fmtu::detail::JsonSerializable<T>) {
                     static_assert(false, "JSON formatting not possible: Type is not serializable");
@@ -667,7 +677,7 @@ struct std::formatter<T>
     // clang-format off
     static constexpr fmtu::detail::FmtOpts ALLOWED_FMT_OPTS{ 
         .pretty = true,
-        .json = fmtu::detail::IS_JSON_ENABLED,
+        .json = fmtu::IS_JSON_ENABLED,
         .verbose = true 
     };
     // clang-format on
@@ -678,7 +688,7 @@ struct std::formatter<T>
     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
     {
         auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts) };
-        if constexpr (fmtu::detail::IS_JSON_ENABLED) {
+        if constexpr (fmtu::IS_JSON_ENABLED) {
             if (fmtOpts.json) {
                 if constexpr (!fmtu::detail::JsonSerializable<T>) {
                     static_assert(false, "JSON formatting not possible: Type is not serializable");
