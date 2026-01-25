@@ -198,6 +198,17 @@ namespace fmtu
             static consteval auto numMembers() -> std::size_t { return MEMBER_NAMES.size(); };
         };
 
+        template<typename Field>
+        consteval auto field_value() -> decltype(auto)
+        {
+            if constexpr (std::is_member_function_pointer_v<decltype(Field::VALUE)>) {
+                return glz::custom<nullptr, Field::VALUE>;
+            }
+            else {
+                return Field::VALUE;
+            }
+        }
+
         // ---------- Reflectable ----------
 
         template<typename T>
@@ -521,9 +532,9 @@ namespace fmtu
         template<FormatInfo Info>
         consteval bool is_info_json_serializable()
         {
+            using MemberTypes = typename Info::MemberTypes;
             return []<size_t... Is>(std::index_sequence<Is...>) {
-                return (is_type_json_serializable<std::tuple_element_t<Is, typename Info::MemberTypes>>() &&
-                        ...);
+                return (is_type_json_serializable<std::tuple_element_t<Is, MemberTypes>>() && ...);
             }(std::make_index_sequence<Info::numMembers()>{});
         }
 
@@ -544,6 +555,18 @@ namespace fmtu
         template<typename T>
         concept JsonSerializable = is_type_json_serializable<T>();
 
+        template<typename T>
+        struct JsonAdapter
+        {
+            using Fields = typename Adapter<T>::Fields;
+            static constexpr auto value = []<size_t... Is>(std::index_sequence<Is...>) {
+                return std::apply(
+                  [](auto&&... args) { return glz::object(std::forward<decltype(args)>(args)...); },
+                  std::tuple_cat(std::make_tuple(std::tuple_element_t<Is, Fields>::NAME,
+                                                 field_value<std::tuple_element_t<Is, Fields>>())...));
+            }(std::make_index_sequence<std::tuple_size_v<Fields>>{});
+        };
+
         static constexpr bool IS_JSON_ENABLED{ true };
 #else
         static constexpr bool IS_JSON_ENABLED{ false };
@@ -553,14 +576,12 @@ namespace fmtu
         auto handle_class_opts(Ctx& ctx, const T& t, const FmtOpts& fmt_opts)
           -> std::optional<typename Ctx::iterator>
         {
-            if constexpr (IS_JSON_ENABLED) {
+            if constexpr (IS_JSON_ENABLED && JsonSerializable<T>) {
                 if (fmt_opts.json) {
-                    if constexpr (JsonSerializable<T>) {
-                        auto json_str{ (fmt_opts.pretty ? glz::write<glz::opts{ .prettify = true }>(t)
-                                                        : glz::write_json(t))
-                                         .value_or("JSON Error") };
-                        return std::format_to(ctx.out(), "{}", json_str);
-                    }
+                    auto json_str{ (fmt_opts.pretty ? glz::write<glz::opts{ .prettify = true }>(t)
+                                                    : glz::write_json(t))
+                                     .value_or("JSON Error") };
+                    return std::format_to(ctx.out(), "{}", json_str);
                 }
             }
             if (fmt_opts.pretty) {
@@ -572,8 +593,16 @@ namespace fmtu
 
             return std::nullopt;
         }
+
     }
 }
+
+#ifdef FMTU_ENABLE_JSON
+template<fmtu::detail::HasAdapter T>
+struct glz::meta<T> : fmtu::detail::JsonAdapter<T>
+{
+};
+#endif
 
 template<fmtu::detail::HasAdapter T>
 struct std::formatter<T>

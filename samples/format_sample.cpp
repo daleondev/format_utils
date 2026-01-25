@@ -1,98 +1,57 @@
 #include "format_utils.hpp"
-#include "glaze/glaze.hpp"
-
-#include <mutex>
 #include <print>
-#include <utility>
 
-enum class my_enum
+class MyClassA
 {
-    First,
-    Second
+  public:
+    MyClassA(int i, std::string s)
+      : m_i(i)
+      , m_s(s)
+    {
+    }
+    int getI() const { return m_i; }
+    std::string getS() const { return m_s; }
+
+  private:
+    int m_i;
+    std::string m_s;
 };
 
-struct my_struct
+template<>
+struct fmtu::Adapter<MyClassA>
 {
-    int i = 287;
-    double d = 3.14;
-    std::string hello = "Hello World";
-    std::array<uint64_t, 3> arr = { 1, 2, 3 };
-    std::map<std::string, int> map{ { "one", 1 }, { "two", 2 } };
-    int* ptr = new int(45);
-    my_enum en = my_enum::First;
-    // std::mutex mutex{};
+    using Fields = std::tuple<fmtu::Field<"i", &MyClassA::getI>, fmtu::Field<"s", &MyClassA::getS>>;
+};
+
+class MyClassB
+{
+  public:
+    MyClassB(int i, std::string s)
+      : m_i(i)
+      , m_s(s)
+    {
+    }
+
+    int m_i;
+    std::string m_s;
+};
+
+template<>
+struct fmtu::Adapter<MyClassB>
+{
+    using Fields = std::tuple<fmtu::Field<"i", &MyClassB::m_i>, fmtu::Field<"s", &MyClassB::m_s>>;
+};
+
+struct Nested
+{
+    int x = 1;
+    MyClassA my_class{ 42, "hello" };
 };
 
 int main()
 {
-    my_struct s{};
-    // std::string buffer = glz::write_json(s).value_or("error");
-    // auto beautiful = glz::prettify_json(buffer);
-
-    std::println("{:pj}", s);
-    std::println("{}", my_enum::First);
-    std::println("{:v}", my_enum::Second);
+    MyClassA a(42, "hello");
+    MyClassB b(44, "hello2");
+    std::println("JSON: {:pj}", a);
+    std::println("JSON: {:pj}", b);
 }
-
-// class MyClassInner
-// {
-// public:
-//     int getX() const { return m_x; }
-
-//     int m_y = 10;
-
-// private:
-//     int m_x = 5;
-// };
-
-// struct Inner
-// {
-//     std::string s = "lol";
-//     double d = 2346.347;
-// };
-
-// class MyClass
-// {
-// public:
-//     int getI() const { return m_i; }
-//     const MyClassInner &getInner() const { return m_inner; }
-//     const Inner &getInnerReflectable() const { return m_innerReflectable; }
-
-//     int m_j = 10;
-
-// private:
-//     MyClassInner m_inner{};
-//     Inner m_innerReflectable{};
-//     int m_i = 5;
-// };
-
-// struct TestStruct
-// {
-//     int i = 1;
-//     float f = 5.5f;
-//     Inner inner{};
-//     const char *str = "Test";
-//     MyClassInner innerClass{};
-//     std::mutex m;
-// };
-
-// template <>
-// struct fmtu::Adapter<MyClassInner>
-// {
-//     using Fields = std::tuple<Field<"x", &MyClassInner::getX>, Field<"y", &MyClassInner::m_y>>;
-// };
-
-// template <>
-// struct fmtu::Adapter<MyClass>
-// {
-//     using Fields = std::tuple<Field<"i", &MyClass::getI>,
-//                               Field<"inner", &MyClass::getInner>,
-//                               Field<"innerReflectable", &MyClass::getInnerReflectable>,
-//                               Field<"j", &MyClass::m_j>>;
-// };
-
-// int main(int argc, char *argv[])
-// {
-//     std::println("{:p}", MyClass{});
-//     std::println("{:p}", TestStruct{});
-// }
