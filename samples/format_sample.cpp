@@ -58,6 +58,13 @@ struct fmtu::Adapter<MyClassB>
                               fmtu::Field<"nested", &MyClassB::getNested>>;
 };
 
+enum class MyEnum
+{
+    EnumA,
+    EnumB,
+    EnumC
+};
+
 int main()
 {
     MyClassA a(42, "hello");

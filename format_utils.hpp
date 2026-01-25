@@ -49,13 +49,13 @@ namespace fmtu
     {
         // ---------- Constexpr data types ----------
 
-        template<typename T, std::size_t Capacity>
+        template<typename T, size_t Capacity>
         struct FixedVector
         {
             std::array<T, Capacity> data{};
-            std::size_t size = 0;
+            size_t size = 0;
 
-            template<std::size_t Size>
+            template<size_t Size>
             constexpr FixedVector(std::array<T, Size>&& arr)
               : size{ Size }
             {
@@ -67,7 +67,7 @@ namespace fmtu
             constexpr auto end() const { return data.begin() + size; }
         };
 
-        template<typename Key, typename Value, std::size_t Size>
+        template<typename Key, typename Value, size_t Size>
         struct FixedMap
         {
             std::array<std::pair<Key, Value>, Size> data;
@@ -222,7 +222,7 @@ namespace fmtu
             static constexpr std::string_view NAME{ reflect::type_name<T>() };
             using MemberTypes = adapter_types_t<T>;
             static constexpr std::array MEMBER_NAMES{ adapter_names<T>() };
-            static consteval auto numMembers() -> std::size_t { return MEMBER_NAMES.size(); };
+            static consteval auto numMembers() -> size_t { return MEMBER_NAMES.size(); };
         };
 
         // ---------- Reflectable ----------
@@ -260,21 +260,32 @@ namespace fmtu
             static constexpr std::string_view NAME{ reflect::type_name<T>() };
             using MemberTypes = reflect_types_t<T>;
             static constexpr std::array MEMBER_NAMES{ reflect_names<T>() };
-            static consteval auto numMembers() -> std::size_t { return MEMBER_NAMES.size(); };
+            static consteval auto numMembers() -> size_t { return MEMBER_NAMES.size(); };
         };
 
         // ---------- Formatting ----------
 
-        template<typename R, typename T>
-        concept RangeOf = std::ranges::range<R> && std::convertible_to<std::ranges::range_value_t<R>, T>;
+        template<typename T>
+        struct is_array : std::false_type
+        {
+        };
+
+        template<typename T, size_t N>
+        struct is_array<std::array<T, N>> : std::true_type
+        {
+        };
+
+        template<typename A, typename T>
+        concept ArrayOf = is_array<std::remove_cvref_t<A>>::value &&
+                          std::convertible_to<typename std::remove_cvref_t<A>::value_type, T>;
 
         template<typename T>
         concept FormatInfo = requires {
             typename T::Type;
             { T::NAME } -> std::convertible_to<std::string_view>;
             typename T::MemberTypes;
-            { T::MEMBER_NAMES } -> RangeOf<std::string_view>;
-            { T::numMembers() } -> std::convertible_to<std::size_t>;
+            { T::MEMBER_NAMES } -> ArrayOf<std::string_view>;
+            { T::numMembers() } -> std::convertible_to<size_t>;
         };
 
         template<FormatInfo Info>
@@ -469,11 +480,27 @@ namespace fmtu
         };
 
         template<ScopedEnum T>
-        consteval auto enum_size() -> std::size_t
+        consteval auto enum_size() -> size_t
         {
             constexpr auto min{ reflect::enum_min(T{}) };
             constexpr auto max{ reflect::enum_max(T{}) };
             return reflect::detail::enum_cases<T, min, max>.size();
+        }
+
+        template<ScopedEnum T>
+        consteval auto other_enumerators(T e) -> decltype(auto)
+        {
+            constexpr auto min{ reflect::enum_min(T{}) };
+            constexpr auto max{ reflect::enum_max(T{}) };
+            constexpr auto enums{ reflect::detail::enum_cases<T, min, max> };
+            std::array<T, enums.size() - 1> result;
+            // clang-format off
+            std::ranges::copy(enums | 
+                                std::views::filter([e](int i) { return i != std::to_underlying(e); }) |
+                                std::views::transform([](int i) { return static_cast<T>(i); }),
+                              result.begin());
+            // clang-format on
+            return result;
         }
 
         enum class FmtOptSpecs : char
@@ -508,12 +535,28 @@ namespace fmtu
             { FmtOptSpecs::Toml,    &FmtOpts::toml }
         }}};
 
+        template<auto Spec>
+        requires ScopedEnum<decltype(Spec)>
+        static constexpr auto DEFINE_ALL_SPECS_INCOMPATIBLE = 
+            std::make_pair(Spec, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>{other_enumerators(Spec)});
+
+        template<auto... Specs> 
+        requires (std::same_as<FmtOptSpecs, decltype(Specs)> && ...)
+        struct IncompatibleSpecs{
+            static consteval auto get() -> std::array<FmtOptSpecs, sizeof...(Specs)> { return { Specs... }; }
+        };
+
+        template<auto Spec, typename Specs>
+        requires ScopedEnum<decltype(Spec)>
+        static constexpr auto DEFINE_INCOMPATIBEL_SPECS = 
+            std::make_pair(Spec, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>{Specs::get()});
+
         static constexpr FixedMap<FmtOptSpecs, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 5> FMT_INCOMPATIBEL_SPECS{{{
-            { FmtOptSpecs::Verbose, std::array{FmtOptSpecs::Json, FmtOptSpecs::Json, FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
-            { FmtOptSpecs::Pretty,  std::array{FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
-            { FmtOptSpecs::Json,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
-            { FmtOptSpecs::Yaml,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Pretty, FmtOptSpecs::Json, FmtOptSpecs::Toml} },
-            { FmtOptSpecs::Toml,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Pretty, FmtOptSpecs::Json, FmtOptSpecs::Yaml} }
+            DEFINE_ALL_SPECS_INCOMPATIBLE   <FmtOptSpecs::Verbose>,
+            DEFINE_INCOMPATIBEL_SPECS       <FmtOptSpecs::Pretty,   IncompatibleSpecs<FmtOptSpecs::Yaml, FmtOptSpecs::Toml>>,
+            DEFINE_INCOMPATIBEL_SPECS       <FmtOptSpecs::Json,     IncompatibleSpecs<FmtOptSpecs::Verbose, FmtOptSpecs::Yaml, FmtOptSpecs::Toml>>,
+            DEFINE_ALL_SPECS_INCOMPATIBLE   <FmtOptSpecs::Yaml>,
+            DEFINE_ALL_SPECS_INCOMPATIBLE   <FmtOptSpecs::Toml>
         }}};
 
         static constexpr std::array GLAZE_SPECS{ FmtOptSpecs::Json, FmtOptSpecs::Yaml, FmtOptSpecs::Toml };
@@ -660,7 +703,6 @@ namespace fmtu
 
             return std::nullopt;
         }
-
     }
 }
 
@@ -727,7 +769,8 @@ struct std::formatter<T>
 {
     static_assert(
       requires { T{}; },
-      "Type T contains reference members or other non-value-initializable members, which are not supported "
+      "Type T contains reference members or other non-value-initializable members, which are not "
+      "supported "
       "for automatic formatting. Consider removing references or providing default initializers.");
 
     using Info = fmtu::detail::ReflectableInfo<T>;
