@@ -23,16 +23,16 @@ namespace fmtu
         // ---------- Constexpr data types ----------
 
         template<typename T, std::size_t Capacity>
-        struct Vector
+        struct FixedVector
         {
             std::array<T, Capacity> data{};
             std::size_t size = 0;
 
             template<std::size_t Size>
-            constexpr Vector(std::array<T, Size>&& arr)
+            constexpr FixedVector(std::array<T, Size>&& arr)
               : size{ Size }
             {
-                static_assert(Size <= Capacity, "Input array exceeds Vector capacity");
+                static_assert(Size <= Capacity, "Input array exceeds FixedVector capacity");
                 std::copy_n(std::make_move_iterator(arr.begin()), Size, data.begin());
             }
 
@@ -41,7 +41,7 @@ namespace fmtu
         };
 
         template<typename Key, typename Value, std::size_t Size>
-        struct Map
+        struct FixedMap
         {
             std::array<std::pair<Key, Value>, Size> data;
 
@@ -479,13 +479,13 @@ namespace fmtu
         };
 
         // clang-format off
-        constexpr Map<FmtOptSpecs, bool FmtOpts::*, 3> FMT_SPECS_TO_OPTS{{{ 
+        constexpr FixedMap<FmtOptSpecs, bool FmtOpts::*, 3> FMT_SPECS_TO_OPTS{{{ 
             { FmtOptSpecs::Pretty,  &FmtOpts::pretty },
             { FmtOptSpecs::Json,    &FmtOpts::json },
             { FmtOptSpecs::Verbose, &FmtOpts::verbose }
         }}};
 
-        constexpr Map<FmtOptSpecs, Vector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 3> FMT_INCOMPATIBEL_SPECS{{{ 
+        constexpr FixedMap<FmtOptSpecs, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 3> FMT_INCOMPATIBEL_SPECS{{{ 
             { FmtOptSpecs::Pretty,  std::array<FmtOptSpecs, 0>{} },
             { FmtOptSpecs::Json,    std::array{FmtOptSpecs::Verbose} },
             { FmtOptSpecs::Verbose, std::array{FmtOptSpecs::Json} }
@@ -626,7 +626,7 @@ struct std::formatter<T>
         if constexpr (fmtu::detail::IS_JSON_ENABLED) {
             if (fmtOpts.json) {
                 if constexpr (!fmtu::detail::JsonSerializable<T>) {
-                    throw std::format_error("JSON formatting not possible: Type is not serializable");
+                    static_assert(false, "JSON formatting not possible: Type is not serializable");
                 }
             }
         }
@@ -681,7 +681,7 @@ struct std::formatter<T>
         if constexpr (fmtu::detail::IS_JSON_ENABLED) {
             if (fmtOpts.json) {
                 if constexpr (!fmtu::detail::JsonSerializable<T>) {
-                    throw std::format_error("JSON formatting not possible: Type is not serializable");
+                    static_assert(false, "JSON formatting not possible: Type is not serializable");
                 }
             }
         }
