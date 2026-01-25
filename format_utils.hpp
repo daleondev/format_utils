@@ -484,7 +484,7 @@ namespace fmtu
             Yaml = 'y',
             Toml = 't'
         };
-        constexpr auto NUM_FMT_OPT_SPECS{ enum_size<FmtOptSpecs>() };
+        static constexpr auto NUM_FMT_OPT_SPECS{ enum_size<FmtOptSpecs>() };
 
         struct FmtOpts
         {
@@ -500,7 +500,7 @@ namespace fmtu
         };
 
         // clang-format off
-        constexpr FixedMap<FmtOptSpecs, bool FmtOpts::*, 5> FMT_SPECS_TO_OPTS{{{ 
+        static constexpr FixedMap<FmtOptSpecs, bool FmtOpts::*, 5> FMT_SPECS_TO_OPTS{{{ 
             { FmtOptSpecs::Verbose, &FmtOpts::verbose },
             { FmtOptSpecs::Pretty,  &FmtOpts::pretty },
             { FmtOptSpecs::Json,    &FmtOpts::json },
@@ -508,7 +508,7 @@ namespace fmtu
             { FmtOptSpecs::Toml,    &FmtOpts::toml }
         }}};
 
-        constexpr FixedMap<FmtOptSpecs, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 5> FMT_INCOMPATIBEL_SPECS{{{
+        static constexpr FixedMap<FmtOptSpecs, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 5> FMT_INCOMPATIBEL_SPECS{{{
             { FmtOptSpecs::Verbose, std::array{FmtOptSpecs::Json, FmtOptSpecs::Json, FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
             { FmtOptSpecs::Pretty,  std::array{FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
             { FmtOptSpecs::Json,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
@@ -516,7 +516,7 @@ namespace fmtu
             { FmtOptSpecs::Toml,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Pretty, FmtOptSpecs::Json, FmtOptSpecs::Yaml} }
         }}};
 
-        constexpr std::array GLAZE_SPECS{ FmtOptSpecs::Json, FmtOptSpecs::Yaml, FmtOptSpecs::Toml };
+        static constexpr std::array GLAZE_SPECS{ FmtOptSpecs::Json, FmtOptSpecs::Yaml, FmtOptSpecs::Toml };
         // clang-format on
 
         constexpr auto FmtOpts::has_glaze() const -> bool
@@ -694,9 +694,8 @@ struct std::formatter<T>
         auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmt_opts) };
         if constexpr (fmtu::IS_GLAZE_ENABLED) {
             if (fmt_opts.has_glaze()) {
-                if constexpr (!fmtu::detail::GlazeSerializable<T>) {
-                    static_assert(false, "Formatting not possible: Type is not glaze serializable");
-                }
+                static_assert(fmtu::detail::GlazeSerializable<T>,
+                              "Formatting not possible: Type is not glaze serializable");
             }
         }
         return it;
@@ -751,9 +750,8 @@ struct std::formatter<T>
         auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmt_opts) };
         if constexpr (fmtu::IS_GLAZE_ENABLED) {
             if (fmt_opts.has_glaze()) {
-                if constexpr (!fmtu::detail::GlazeSerializable<T>) {
-                    static_assert(false, "Formatting not possible: Type is not glaze serializable");
-                }
+                static_assert(fmtu::detail::GlazeSerializable<T>,
+                              "Formatting not possible: Type is not glaze serializable");
             }
         }
         return it;
