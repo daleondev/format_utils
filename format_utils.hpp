@@ -116,6 +116,11 @@ namespace fmtu
             requires std::formattable<typename std::remove_cvref_t<T>::element_type, char>;
         };
 
+#ifdef FMTU_ENABLE_JSON
+        template<typename T>
+        concept JsonSerializable = requires { glz::write<glz::opts{ .prettify = true }>(T{}).has_value(); };
+#endif
+
         // ---------- Adapter ----------
 
         template<typename T>
@@ -522,13 +527,18 @@ namespace fmtu
           -> std::optional<typename Ctx::iterator>
         {
 #ifdef FMTU_ENABLE_JSON
-            if (fmt_opts.pretty && fmt_opts.json) {
-                std::string json_str{ glz::write<glz::opts{ .prettify = true }>(t).value_or("JSON Error") };
-                return std::format_to(ctx.out(), "{}", json_str);
-            }
             if (fmt_opts.json) {
-                std::string json_str{ glz::write_json(t).value_or("JSON Error") };
-                return std::format_to(ctx.out(), "{}", json_str);
+                if constexpr (JsonSerializable<T>) {
+                    if (fmt_opts.pretty) {
+                        std::string json_str{ glz::write<glz::opts{ .prettify = true }>(t).value_or(
+                          "JSON Error") };
+                        return std::format_to(ctx.out(), "{}", json_str);
+                    }
+                    else {
+                        std::string json_str{ glz::write_json(t).value_or("JSON Error") };
+                        return std::format_to(ctx.out(), "{}", json_str);
+                    }
+                }
             }
 #endif
             if (fmt_opts.pretty) {
@@ -617,8 +627,11 @@ struct std::formatter<T>
     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
     {
         auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts) };
-        if (fmtOpts.json && !requires { glz::write_json(T{}); }) {
-            throw std::format_error("JSON formatting not possible");
+        if (fmtOpts.json) {
+            if constexpr (!fmtu::detail::JsonSerializable<T>) {
+                throw std::format_error(
+                  "JSON formatting not possible: Type contains non-serializable members");
+            }
         }
         return it;
     }

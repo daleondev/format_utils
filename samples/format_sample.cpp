@@ -20,7 +20,7 @@ struct my_struct
     std::map<std::string, int> map{ { "one", 1 }, { "two", 2 } };
     int* ptr = new int(45);
     my_enum en = my_enum::First;
-    // std::mutex mutex{};
+    std::mutex mutex{};
 };
 
 int main()
