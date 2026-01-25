@@ -61,12 +61,6 @@ if(FMTU_ENABLE_JSON OR FMTU_ENABLE_YAML OR FMTU_ENABLE_TOML)
     )
     FetchContent_MakeAvailable(glaze)
 
-    target_link_libraries(
-        format_utils
-        INTERFACE
-        glaze::glaze
-    )
-
     add_library(glaze_defines INTERFACE)
     target_compile_definitions(glaze_defines INTERFACE FMTU_ENABLE_GLAZE)
 
@@ -83,6 +77,7 @@ if(FMTU_ENABLE_JSON OR FMTU_ENABLE_YAML OR FMTU_ENABLE_TOML)
     target_link_libraries(
         format_utils
         INTERFACE
+				glaze::glaze
         glaze_defines
     )
 endif()
