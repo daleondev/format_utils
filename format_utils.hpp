@@ -510,7 +510,7 @@ namespace fmtu
 
         constexpr FixedMap<FmtOptSpecs, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 5> FMT_INCOMPATIBEL_SPECS{{{
             { FmtOptSpecs::Verbose, std::array{FmtOptSpecs::Json, FmtOptSpecs::Json, FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
-            { FmtOptSpecs::Pretty,  std::array<FmtOptSpecs, 0>{} },
+            { FmtOptSpecs::Pretty,  std::array{FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
             { FmtOptSpecs::Json,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
             { FmtOptSpecs::Yaml,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Pretty, FmtOptSpecs::Json, FmtOptSpecs::Toml} },
             { FmtOptSpecs::Toml,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Pretty, FmtOptSpecs::Json, FmtOptSpecs::Yaml} }
