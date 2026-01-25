@@ -1,7 +1,13 @@
 #pragma once
 
 #ifdef FMTU_ENABLE_JSON
-#include <glaze/glaze.hpp>
+#include <glaze/json.hpp>
+#endif
+#ifdef FMTU_ENABLE_YAML
+#include <glaze/yaml.hpp>
+#endif
+#ifdef FMTU_ENABLE_TOML
+#include <glaze/toml.hpp>
 #endif
 
 #include <reflect>
@@ -18,10 +24,25 @@
 
 namespace fmtu
 {
+#ifdef FMTU_ENABLE_GLAZE
+    static constexpr bool IS_GLAZE_ENABLED{ true };
+#else
+    static constexpr bool IS_GLAZE_ENABLED{ false };
+#endif
 #ifdef FMTU_ENABLE_JSON
     static constexpr bool IS_JSON_ENABLED{ true };
 #else
     static constexpr bool IS_JSON_ENABLED{ false };
+#endif
+#ifdef FMTU_ENABLE_YAML
+    static constexpr bool IS_YAML_ENABLED{ true };
+#else
+    static constexpr bool IS_YAML_ENABLED{ false };
+#endif
+#ifdef FMTU_ENABLE_TOML
+    static constexpr bool IS_TOML_ENABLED{ true };
+#else
+    static constexpr bool IS_TOML_ENABLED{ false };
 #endif
 
     namespace detail
@@ -457,35 +478,57 @@ namespace fmtu
 
         enum class FmtOptSpecs : char
         {
+            Verbose = 'v',
             Pretty = 'p',
             Json = 'j',
-            Verbose = 'v'
+            Yaml = 'y',
+            Toml = 't'
         };
         constexpr auto NUM_FMT_OPT_SPECS{ enum_size<FmtOptSpecs>() };
 
         struct FmtOpts
         {
+            bool verbose;
             bool pretty;
             bool json;
-            bool verbose;
+            bool yaml;
+            bool toml;
 
-            bool operator==(const FmtOpts&) const = default;
-            auto hasOpt() const -> bool { return *this != FmtOpts{}; }
+            constexpr bool operator==(const FmtOpts&) const = default;
+            constexpr auto has_opt() const -> bool { return *this != FmtOpts{}; }
+            constexpr auto has_glaze() const -> bool;
         };
 
         // clang-format off
-        constexpr FixedMap<FmtOptSpecs, bool FmtOpts::*, 3> FMT_SPECS_TO_OPTS{{{ 
+        constexpr FixedMap<FmtOptSpecs, bool FmtOpts::*, 5> FMT_SPECS_TO_OPTS{{{ 
+            { FmtOptSpecs::Verbose, &FmtOpts::verbose },
             { FmtOptSpecs::Pretty,  &FmtOpts::pretty },
             { FmtOptSpecs::Json,    &FmtOpts::json },
-            { FmtOptSpecs::Verbose, &FmtOpts::verbose }
+            { FmtOptSpecs::Yaml,    &FmtOpts::yaml },
+            { FmtOptSpecs::Toml,    &FmtOpts::toml }
         }}};
 
-        constexpr FixedMap<FmtOptSpecs, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 3> FMT_INCOMPATIBEL_SPECS{{{ 
+        constexpr FixedMap<FmtOptSpecs, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 5> FMT_INCOMPATIBEL_SPECS{{{
+            { FmtOptSpecs::Verbose, std::array{FmtOptSpecs::Json, FmtOptSpecs::Json, FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
             { FmtOptSpecs::Pretty,  std::array<FmtOptSpecs, 0>{} },
-            { FmtOptSpecs::Json,    std::array{FmtOptSpecs::Verbose} },
-            { FmtOptSpecs::Verbose, std::array{FmtOptSpecs::Json} }
+            { FmtOptSpecs::Json,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Yaml, FmtOptSpecs::Toml} },
+            { FmtOptSpecs::Yaml,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Pretty, FmtOptSpecs::Json, FmtOptSpecs::Toml} },
+            { FmtOptSpecs::Toml,    std::array{FmtOptSpecs::Verbose, FmtOptSpecs::Pretty, FmtOptSpecs::Json, FmtOptSpecs::Yaml} }
         }}};
+
+        constexpr std::array GLAZE_SPECS{ FmtOptSpecs::Json, FmtOptSpecs::Yaml, FmtOptSpecs::Toml };
         // clang-format on
+
+        constexpr auto FmtOpts::has_glaze() const -> bool
+        {
+            return std::ranges::any_of(GLAZE_SPECS, [this](FmtOptSpecs spec) {
+                auto opt{ FMT_SPECS_TO_OPTS.at(spec) };
+                if (!opt.has_value()) {
+                    return false;
+                }
+                return (*this).*opt.value();
+            });
+        }
 
         template<FmtOpts AllowedOpts, typename Ctx>
         constexpr auto parse_fmt_opts(Ctx& ctx, FmtOpts& active_opts) -> Ctx::iterator
@@ -520,27 +563,27 @@ namespace fmtu
             return it;
         }
 
-#ifdef FMTU_ENABLE_JSON
+#ifdef FMTU_ENABLE_GLAZE
         template<typename T>
-        consteval bool is_type_json_serializable();
+        consteval bool is_type_glaze_serializable();
 
         template<FormatInfo Info>
-        consteval bool is_info_json_serializable()
+        consteval bool is_info_glaze_serializable()
         {
             using MemberTypes = typename Info::MemberTypes;
             return []<size_t... Is>(std::index_sequence<Is...>) {
-                return (is_type_json_serializable<std::tuple_element_t<Is, MemberTypes>>() && ...);
+                return (is_type_glaze_serializable<std::tuple_element_t<Is, MemberTypes>>() && ...);
             }(std::make_index_sequence<Info::numMembers()>{});
         }
 
         template<typename T>
-        consteval bool is_type_json_serializable()
+        consteval bool is_type_glaze_serializable()
         {
             if constexpr (HasAdapter<T>) {
-                return is_info_json_serializable<AdapterInfo<T>>();
+                return is_info_glaze_serializable<AdapterInfo<T>>();
             }
             else if constexpr (Reflectable<T>) {
-                return is_info_json_serializable<ReflectableInfo<T>>();
+                return is_info_glaze_serializable<ReflectableInfo<T>>();
             }
             else {
                 return glz::write_supported<T, glz::JSON>;
@@ -548,7 +591,7 @@ namespace fmtu
         }
 
         template<typename Field>
-        consteval auto json_field_value() -> decltype(auto)
+        consteval auto glaze_field_value() -> decltype(auto)
         {
             if constexpr (std::is_member_function_pointer_v<decltype(Field::VALUE)>) {
                 return glz::custom<nullptr, Field::VALUE>;
@@ -559,41 +602,55 @@ namespace fmtu
         }
 
         template<typename T>
-        struct JsonAdapter
+        struct GlazeAdapter
         {
             using Fields = typename Adapter<T>::Fields;
             static constexpr auto value = []<size_t... Is>(std::index_sequence<Is...>) {
                 return std::apply(
                   [](auto&&... args) { return glz::object(std::forward<decltype(args)>(args)...); },
                   std::tuple_cat(std::make_tuple(std::tuple_element_t<Is, Fields>::NAME,
-                                                 json_field_value<std::tuple_element_t<Is, Fields>>())...));
+                                                 glaze_field_value<std::tuple_element_t<Is, Fields>>())...));
             }(std::make_index_sequence<std::tuple_size_v<Fields>>{});
         };
 #else
         template<typename T>
-        consteval bool is_type_json_serializable()
+        consteval bool is_type_glaze_serializable()
         {
             return false;
         }
 #endif
 
         template<typename T>
-        concept JsonSerializable = is_type_json_serializable<T>();
+        concept GlazeSerializable = is_type_glaze_serializable<T>();
 
         template<FormatInfo Info, typename Ctx, typename T>
         auto handle_class_opts(Ctx& ctx, const T& t, const FmtOpts& fmt_opts)
           -> std::optional<typename Ctx::iterator>
         {
+            if constexpr (GlazeSerializable<T>) {
 #ifdef FMTU_ENABLE_JSON
-            if constexpr (JsonSerializable<T>) {
                 if (fmt_opts.json) {
                     auto json_str{ (fmt_opts.pretty ? glz::write<glz::opts{ .prettify = true }>(t)
                                                     : glz::write_json(t))
                                      .value_or("JSON Error") };
                     return std::format_to(ctx.out(), "{}", json_str);
                 }
-            }
 #endif
+#ifdef FMTU_ENABLE_YAML
+                if (fmt_opts.yaml) {
+                    // TODO: uncomment when glaze is fixed
+                    // auto yaml_str{ glz::write_yaml(t).value_or("YAML Error") };
+                    auto yaml_str{ "" };
+                    return std::format_to(ctx.out(), "{}", yaml_str);
+                }
+#endif
+#ifdef FMTU_ENABLE_TOML
+                if (fmt_opts.toml) {
+                    auto toml_str{ glz::write_toml(t).value_or("TOML Error") };
+                    return std::format_to(ctx.out(), "{}", toml_str);
+                }
+#endif
+            }
             if (fmt_opts.pretty) {
                 auto args{ fmtu::detail::make_flat_args_tuple(t) };
                 static constexpr auto fmt{ fmtu::detail::class_pretty_format<Info>() };
@@ -607,9 +664,9 @@ namespace fmtu
     }
 }
 
-#ifdef FMTU_ENABLE_JSON
+#ifdef FMTU_ENABLE_GLAZE
 template<fmtu::detail::HasAdapter T>
-struct glz::meta<T> : fmtu::detail::JsonAdapter<T>
+struct glz::meta<T> : fmtu::detail::GlazeAdapter<T>
 {
 };
 #endif
@@ -620,23 +677,25 @@ struct std::formatter<T>
     using Info = fmtu::detail::AdapterInfo<T>;
 
     // clang-format off
-    static constexpr fmtu::detail::FmtOpts ALLOWED_FMT_OPTS{ 
+    static constexpr fmtu::detail::FmtOpts ALLOWED_FMT_OPTS{
+        .verbose = true,
         .pretty = true,
         .json = fmtu::IS_JSON_ENABLED,
-        .verbose = true 
+        .yaml = fmtu::IS_YAML_ENABLED,
+        .toml = fmtu::IS_TOML_ENABLED
     };
     // clang-format on
 
-    fmtu::detail::FmtOpts fmtOpts{};
+    fmtu::detail::FmtOpts fmt_opts{};
 
     template<typename Ctx>
     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
     {
-        auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts) };
-        if constexpr (fmtu::IS_JSON_ENABLED) {
-            if (fmtOpts.json) {
-                if constexpr (!fmtu::detail::JsonSerializable<T>) {
-                    static_assert(false, "JSON formatting not possible: Type is not serializable");
+        auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmt_opts) };
+        if constexpr (fmtu::IS_GLAZE_ENABLED) {
+            if (fmt_opts.has_glaze()) {
+                if constexpr (!fmtu::detail::GlazeSerializable<T>) {
+                    static_assert(false, "Formatting not possible: Type is not glaze serializable");
                 }
             }
         }
@@ -646,8 +705,8 @@ struct std::formatter<T>
     template<typename Ctx>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
-        if (fmtOpts.hasOpt()) {
-            if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmtOpts) }; it.has_value()) {
+        if (fmt_opts.has_opt()) {
+            if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmt_opts) }; it.has_value()) {
                 return it.value();
             }
         }
@@ -676,22 +735,24 @@ struct std::formatter<T>
 
     // clang-format off
     static constexpr fmtu::detail::FmtOpts ALLOWED_FMT_OPTS{ 
+        .verbose = true,
         .pretty = true,
         .json = fmtu::IS_JSON_ENABLED,
-        .verbose = true 
+        .yaml = fmtu::IS_YAML_ENABLED,
+        .toml = fmtu::IS_TOML_ENABLED
     };
     // clang-format on
 
-    fmtu::detail::FmtOpts fmtOpts{};
+    fmtu::detail::FmtOpts fmt_opts{};
 
     template<typename Ctx>
     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
     {
-        auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts) };
-        if constexpr (fmtu::IS_JSON_ENABLED) {
-            if (fmtOpts.json) {
-                if constexpr (!fmtu::detail::JsonSerializable<T>) {
-                    static_assert(false, "JSON formatting not possible: Type is not serializable");
+        auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmt_opts) };
+        if constexpr (fmtu::IS_GLAZE_ENABLED) {
+            if (fmt_opts.has_glaze()) {
+                if constexpr (!fmtu::detail::GlazeSerializable<T>) {
+                    static_assert(false, "Formatting not possible: Type is not glaze serializable");
                 }
             }
         }
@@ -701,8 +762,8 @@ struct std::formatter<T>
     template<typename Ctx>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
-        if (fmtOpts.hasOpt()) {
-            if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmtOpts) }; it.has_value()) {
+        if (fmt_opts.has_opt()) {
+            if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmt_opts) }; it.has_value()) {
                 return it.value();
             }
         }
@@ -721,18 +782,18 @@ template<fmtu::detail::ScopedEnum T>
 struct std::formatter<T>
 {
     static constexpr fmtu::detail::FmtOpts ALLOWED_FMT_OPTS{ .verbose = true };
-    fmtu::detail::FmtOpts fmtOpts{};
+    fmtu::detail::FmtOpts fmt_opts{};
 
     template<typename Ctx>
     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
     {
-        return fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts);
+        return fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmt_opts);
     }
 
     template<typename Ctx>
     auto format(T t, Ctx& ctx) const -> Ctx::iterator
     {
-        if (fmtOpts.verbose) {
+        if (fmt_opts.verbose) {
             return std::format_to(ctx.out(), "{}:{}", reflect::type_name(t), reflect::enum_name(t));
         }
         return std::format_to(ctx.out(), "{}", reflect::enum_name(t));

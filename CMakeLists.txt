@@ -50,11 +50,13 @@ target_compile_features(
 )
 
 option(FMTU_ENABLE_JSON "Enable JSON support." ON)
-if(FMTU_ENABLE_JSON)
+option(FMTU_ENABLE_YAML "Enable YAML support." ON)
+option(FMTU_ENABLE_TOML "Enable TOML support." ON)
+if(FMTU_ENABLE_JSON OR FMTU_ENABLE_YAML OR FMTU_ENABLE_TOML)
     FetchContent_Declare(
         glaze
         GIT_REPOSITORY https://github.com/stephenberry/glaze.git
-        GIT_TAG v7.0.1
+        GIT_TAG main
         GIT_SHALLOW TRUE
     )
     FetchContent_MakeAvailable(glaze)
@@ -64,11 +66,24 @@ if(FMTU_ENABLE_JSON)
         INTERFACE
         glaze::glaze
     )
-    
-    target_compile_definitions(
+
+    add_library(glaze_defines INTERFACE)
+    target_compile_definitions(glaze_defines INTERFACE FMTU_ENABLE_GLAZE)
+
+    if(FMTU_ENABLE_JSON)
+        target_compile_definitions(glaze_defines INTERFACE FMTU_ENABLE_JSON)
+    endif()
+    if(FMTU_ENABLE_YAML)
+        target_compile_definitions(glaze_defines INTERFACE FMTU_ENABLE_YAML)
+    endif()
+    if(FMTU_ENABLE_TOML)
+        target_compile_definitions(glaze_defines INTERFACE FMTU_ENABLE_TOML)
+    endif()
+
+    target_link_libraries(
         format_utils
         INTERFACE
-        FMTU_ENABLE_JSON
+        glaze_defines
     )
 endif()
 

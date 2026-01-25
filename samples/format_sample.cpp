@@ -62,7 +62,9 @@ int main()
 {
     MyClassA a(42, "hello");
     MyClassB b(44, "hello2");
-    std::println("JSON: {:pj}", a);
-    std::println("JSON: {:pj}", b);
-    std::println("JSON: {:pj}", Nested{});
+    std::println("{:pj}", a);
+    std::println("{:pj}", b);
+    std::println("{:pj}", Nested{});
+    std::println("{:y}", Nested{});
+    std::println("{:t}", Nested{});
 }
