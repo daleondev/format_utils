@@ -4,6 +4,12 @@
 #include <mutex>
 #include <print>
 
+enum class my_enum
+{
+    First,
+    Second
+};
+
 struct my_struct
 {
     int i = 287;
@@ -12,6 +18,7 @@ struct my_struct
     std::array<uint64_t, 3> arr = { 1, 2, 3 };
     std::map<std::string, int> map{ { "one", 1 }, { "two", 2 } };
     int* ptr = new int(45);
+    my_enum en = my_enum::First;
 };
 
 int main()
@@ -20,7 +27,9 @@ int main()
     // std::string buffer = glz::write_json(s).value_or("error");
     // auto beautiful = glz::prettify_json(buffer);
 
-    std::println("{:jp}", s);
+    std::println("{:pj}", s);
+    std::println("{}", my_enum::First);
+    std::println("{:v}", my_enum::Second);
 }
 
 // class MyClassInner

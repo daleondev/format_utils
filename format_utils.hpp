@@ -21,7 +21,25 @@ namespace fmtu
 {
     namespace detail
     {
-        // ---------- Map ----------
+        // ---------- Constexpr data types ----------
+
+        template<typename T, std::size_t Capacity>
+        struct Vector
+        {
+            std::array<T, Capacity> data{};
+            std::size_t size = 0;
+
+            template<std::size_t Size>
+            constexpr Vector(std::array<T, Size>&& arr)
+              : size{ Size }
+            {
+                static_assert(Size <= Capacity, "Input array exceeds Vector capacity");
+                std::copy_n(std::make_move_iterator(arr.begin()), Size, data.begin());
+            }
+
+            constexpr auto begin() const { return data.begin(); }
+            constexpr auto end() const { return data.begin() + size; }
+        };
 
         template<typename Key, typename Value, std::size_t Size>
         struct Map
@@ -436,21 +454,31 @@ namespace fmtu
             bool pretty;
             bool json;
             bool verbose;
+
+            bool operator==(const FmtOpts&) const = default;
+            auto hasOpt() const -> bool { return *this != FmtOpts{}; }
         };
 
         // clang-format off
         constexpr Map<FmtOptSpecs, bool FmtOpts::*, 3> FMT_SPECS_TO_OPTS{{{ 
-            { FmtOptSpecs::Pretty, &FmtOpts::pretty },
-            { FmtOptSpecs::Json, &FmtOpts::json },
+            { FmtOptSpecs::Pretty,  &FmtOpts::pretty },
+            { FmtOptSpecs::Json,    &FmtOpts::json },
             { FmtOptSpecs::Verbose, &FmtOpts::verbose }
+        }}};
+
+        constexpr Map<FmtOptSpecs, Vector<FmtOptSpecs, 3>, 3> FMT_INCOMPATIBEL_SPECS{{{ 
+            { FmtOptSpecs::Pretty,  std::array<FmtOptSpecs, 0>{} },
+            { FmtOptSpecs::Json,    std::array{FmtOptSpecs::Verbose} },
+            { FmtOptSpecs::Verbose, std::array{FmtOptSpecs::Json} }
         }}};
         // clang-format on
 
         template<FmtOpts AllowedOpts, typename Ctx>
-        constexpr auto parse_fmt_opts(Ctx& ctx, FmtOpts& activeOpts) -> Ctx::iterator
+        constexpr auto parse_fmt_opts(Ctx& ctx, FmtOpts& active_opts) -> Ctx::iterator
         {
             auto it{ ctx.begin() };
 
+            std::vector<FmtOptSpecs> incompatibel_specs{};
             while (it != ctx.end()) {
                 auto spec_char{ *it };
                 if (spec_char == '}') {
@@ -458,16 +486,48 @@ namespace fmtu
                 }
 
                 auto spec{ static_cast<FmtOptSpecs>(spec_char) };
+                if (std::ranges::contains(incompatibel_specs, spec)) {
+                    throw std::format_error("Invalid format specifier");
+                }
+
                 auto opt{ FMT_SPECS_TO_OPTS.at(spec) };
                 if (!opt.has_value() || !(AllowedOpts.*opt.value())) {
                     throw std::format_error("Invalid format specifier");
                 }
-                activeOpts.*opt.value() = true;
+                active_opts.*opt.value() = true;
+
+                if (auto inc_specs{ FMT_INCOMPATIBEL_SPECS.at(spec) }; inc_specs.has_value()) {
+                    incompatibel_specs.insert(incompatibel_specs.end(), inc_specs->begin(), inc_specs->end());
+                }
 
                 ++it;
             }
 
             return it;
+        }
+
+        template<FormatInfo Info, typename Ctx, typename T>
+        auto handle_class_opts(Ctx& ctx, const T& t, const FmtOpts& fmt_opts)
+          -> std::optional<typename Ctx::iterator>
+        {
+#ifdef FMTU_ENABLE_JSON
+            if (fmt_opts.pretty && fmt_opts.json) {
+                std::string json_str{ glz::write<glz::opts{ .prettify = true }>(t).value_or("JSON Error") };
+                return std::format_to(ctx.out(), "{}", json_str);
+            }
+            if (fmt_opts.json) {
+                std::string json_str{ glz::write_json(t).value_or("JSON Error") };
+                return std::format_to(ctx.out(), "{}", json_str);
+            }
+#endif
+            if (fmt_opts.pretty) {
+                auto args{ fmtu::detail::make_flat_args_tuple(t) };
+                static constexpr auto fmt{ fmtu::detail::class_pretty_format<Info>() };
+                return std::apply(
+                  [&ctx](const auto&... args) { return std::format_to(ctx.out(), fmt, args...); }, args);
+            }
+
+            return std::nullopt;
         }
     }
 }
@@ -551,21 +611,10 @@ struct std::formatter<T>
     template<typename Ctx>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
-#ifdef FMTU_ENABLE_JSON
-        if (fmtOpts.pretty && fmtOpts.json) {
-            std::string json_str{ glz::write<glz::opts{ .prettify = true }>(t).value_or("JSON Error") };
-            return std::format_to(ctx.out(), "{}", json_str);
-        }
-        if (fmtOpts.json) {
-            std::string json_str{ glz::write_json(t).value_or("JSON Error") };
-            return std::format_to(ctx.out(), "{}", json_str);
-        }
-#endif
-        if (fmtOpts.pretty) {
-            auto args{ fmtu::detail::make_flat_args_tuple(t) };
-            static constexpr auto fmt{ fmtu::detail::class_pretty_format<Info>() };
-            return std::apply([&ctx](const auto&... args) { return std::format_to(ctx.out(), fmt, args...); },
-                              args);
+        if (fmtOpts.hasOpt()) {
+            if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmtOpts) }; it.has_value()) {
+                return it.value();
+            }
         }
 
         auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) {
@@ -581,32 +630,19 @@ struct std::formatter<T>
 template<fmtu::detail::ScopedEnum T>
 struct std::formatter<T>
 {
-    bool verbose{ false };
+    static constexpr fmtu::detail::FmtOpts ALLOWED_FMT_OPTS{ .verbose = true };
+    fmtu::detail::FmtOpts fmtOpts{};
 
     template<typename Ctx>
     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
     {
-        auto it{ ctx.begin() };
-        if (it == ctx.end()) {
-            return it;
-        }
-
-        if (*it == 'v') {
-            verbose = true;
-            ++it;
-        }
-
-        if (it != ctx.end() && *it != '}') {
-            throw std::format_error("Invalid format args");
-        }
-
-        return it;
+        return fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts);
     }
 
     template<typename Ctx>
     auto format(T t, Ctx& ctx) const -> Ctx::iterator
     {
-        if (verbose) {
+        if (fmtOpts.verbose) {
             return std::format_to(ctx.out(), "{}:{}", reflect::type_name(t), reflect::enum_name(t));
         }
         return std::format_to(ctx.out(), "{}", reflect::enum_name(t));
