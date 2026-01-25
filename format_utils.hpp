@@ -487,23 +487,27 @@ namespace fmtu
             return reflect::detail::enum_cases<T, min, max>.size();
         }
 
-        template<ScopedEnum T>
-        consteval auto other_enumerators(T e) -> decltype(auto)
+        template<ScopedEnum T, size_t N>
+        consteval auto inverse_enumerators(const std::array<T, N>& arr) -> decltype(auto)
         {
             constexpr auto min{ reflect::enum_min(T{}) };
             constexpr auto max{ reflect::enum_max(T{}) };
             constexpr auto enums{ reflect::detail::enum_cases<T, min, max> };
-            std::array<T, enums.size() - 1> result;
+            std::array<T, enums.size() - arr.size()> result;
             // clang-format off
             std::ranges::copy(enums | 
-                                std::views::filter([e](int i) { return i != std::to_underlying(e); }) |
+                                std::views::filter([&arr](int i) { 
+                                    return std::ranges::none_of(arr, [i](T t) {
+                                        return i == std::to_underlying(t);
+                                    }); 
+                                }) |
                                 std::views::transform([](int i) { return static_cast<T>(i); }),
                               result.begin());
             // clang-format on
             return result;
         }
 
-        enum class FmtOptSpecs : char
+        enum class FmtSpecs : char
         {
             Verbose = 'v',
             Pretty = 'p',
@@ -511,7 +515,8 @@ namespace fmtu
             Yaml = 'y',
             Toml = 't'
         };
-        static constexpr auto NUM_FMT_OPT_SPECS{ enum_size<FmtOptSpecs>() };
+        // static constexpr auto NUM_FMT_SPECS{ enum_size<FmtSpecs>() };
+        static constexpr auto NUM_FMT_SPECS{ 5uz }; // tmp
 
         struct FmtOpts
         {
@@ -526,45 +531,58 @@ namespace fmtu
             constexpr auto has_glaze() const -> bool;
         };
 
-        // clang-format off
-        static constexpr FixedMap<FmtOptSpecs, bool FmtOpts::*, 5> FMT_SPECS_TO_OPTS{{{ 
-            { FmtOptSpecs::Verbose, &FmtOpts::verbose },
-            { FmtOptSpecs::Pretty,  &FmtOpts::pretty },
-            { FmtOptSpecs::Json,    &FmtOpts::json },
-            { FmtOptSpecs::Yaml,    &FmtOpts::yaml },
-            { FmtOptSpecs::Toml,    &FmtOpts::toml }
-        }}};
-
-        template<auto Spec>
-        requires ScopedEnum<decltype(Spec)>
-        static constexpr auto DEFINE_ALL_SPECS_INCOMPATIBLE = 
-            std::make_pair(Spec, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>{other_enumerators(Spec)});
-
-        template<auto... Specs> 
-        requires (std::same_as<FmtOptSpecs, decltype(Specs)> && ...)
-        struct IncompatibleSpecs{
-            static consteval auto get() -> std::array<FmtOptSpecs, sizeof...(Specs)> { return { Specs... }; }
+        template<auto... S>
+            requires(std::same_as<FmtSpecs, decltype(S)> && ...)
+        struct IncompatibleSpecs
+        {
+            static consteval auto get() -> std::array<FmtSpecs, sizeof...(S)> { return { S... }; }
         };
 
-        template<auto Spec, typename Specs>
-        requires ScopedEnum<decltype(Spec)>
-        static constexpr auto DEFINE_INCOMPATIBEL_SPECS = 
-            std::make_pair(Spec, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>{Specs::get()});
+        template<auto S, typename I>
+            requires std::same_as<FmtSpecs, decltype(S)>
+        static constexpr auto DEFINE_INCOMPATIBEL_SPECS =
+          std::make_pair(S, FixedVector<FmtSpecs, NUM_FMT_SPECS - 1>{ I::get() });
 
-        static constexpr FixedMap<FmtOptSpecs, FixedVector<FmtOptSpecs, NUM_FMT_OPT_SPECS-1>, 5> FMT_INCOMPATIBEL_SPECS{{{
-            DEFINE_ALL_SPECS_INCOMPATIBLE   <FmtOptSpecs::Verbose>,
-            DEFINE_INCOMPATIBEL_SPECS       <FmtOptSpecs::Pretty,   IncompatibleSpecs<FmtOptSpecs::Yaml, FmtOptSpecs::Toml>>,
-            DEFINE_INCOMPATIBEL_SPECS       <FmtOptSpecs::Json,     IncompatibleSpecs<FmtOptSpecs::Verbose, FmtOptSpecs::Yaml, FmtOptSpecs::Toml>>,
-            DEFINE_ALL_SPECS_INCOMPATIBLE   <FmtOptSpecs::Yaml>,
-            DEFINE_ALL_SPECS_INCOMPATIBLE   <FmtOptSpecs::Toml>
+        template<auto... S>
+            requires(std::same_as<FmtSpecs, decltype(S)> && ...)
+        struct CompatibleSpecs
+        {
+            template<auto E>
+                requires(std::same_as<FmtSpecs, decltype(E)>)
+            static consteval auto get() -> std::array<FmtSpecs, enum_size<FmtSpecs>() - (sizeof...(S) + 1)>
+            {
+                return inverse_enumerators(std::array{ E, S... });
+            }
+        };
+
+        template<auto S, typename C>
+            requires std::same_as<FmtSpecs, decltype(S)>
+        static constexpr auto DEFINE_COMPATIBEL_SPECS =
+          std::make_pair(S, FixedVector<FmtSpecs, NUM_FMT_SPECS - 1>{ C::template get<S>() });
+
+        // clang-format off
+        static constexpr FixedMap<FmtSpecs, FixedVector<FmtSpecs, NUM_FMT_SPECS-1>, NUM_FMT_SPECS> FMT_INCOMPATIBEL_SPECS{{{
+            DEFINE_COMPATIBEL_SPECS     <FmtSpecs::Verbose, CompatibleSpecs<FmtSpecs::Pretty>>,
+            DEFINE_INCOMPATIBEL_SPECS   <FmtSpecs::Pretty,  IncompatibleSpecs<FmtSpecs::Yaml, FmtSpecs::Toml>>,
+            DEFINE_COMPATIBEL_SPECS     <FmtSpecs::Json,    CompatibleSpecs<FmtSpecs::Pretty>>,
+            DEFINE_COMPATIBEL_SPECS     <FmtSpecs::Yaml,    CompatibleSpecs<>>,
+            DEFINE_COMPATIBEL_SPECS     <FmtSpecs::Toml,    CompatibleSpecs<>>
         }}};
 
-        static constexpr std::array GLAZE_SPECS{ FmtOptSpecs::Json, FmtOptSpecs::Yaml, FmtOptSpecs::Toml };
+        static constexpr FixedMap<FmtSpecs, bool FmtOpts::*, NUM_FMT_SPECS> FMT_SPECS_TO_OPTS{{{ 
+            { FmtSpecs::Verbose, &FmtOpts::verbose },
+            { FmtSpecs::Pretty,  &FmtOpts::pretty },
+            { FmtSpecs::Json,    &FmtOpts::json },
+            { FmtSpecs::Yaml,    &FmtOpts::yaml },
+            { FmtSpecs::Toml,    &FmtOpts::toml }
+        }}};
+
+        static constexpr std::array GLAZE_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
         // clang-format on
 
         constexpr auto FmtOpts::has_glaze() const -> bool
         {
-            return std::ranges::any_of(GLAZE_SPECS, [this](FmtOptSpecs spec) {
+            return std::ranges::any_of(GLAZE_SPECS, [this](FmtSpecs spec) {
                 auto opt{ FMT_SPECS_TO_OPTS.at(spec) };
                 if (!opt.has_value()) {
                     return false;
@@ -578,14 +596,14 @@ namespace fmtu
         {
             auto it{ ctx.begin() };
 
-            std::vector<FmtOptSpecs> incompatibel_specs{};
+            std::vector<FmtSpecs> incompatibel_specs{};
             while (it != ctx.end()) {
                 auto spec_char{ *it };
                 if (spec_char == '}') {
                     return it;
                 }
 
-                auto spec{ static_cast<FmtOptSpecs>(spec_char) };
+                auto spec{ static_cast<FmtSpecs>(spec_char) };
                 if (std::ranges::contains(incompatibel_specs, spec)) {
                     throw std::format_error("Invalid format specifier");
                 }
