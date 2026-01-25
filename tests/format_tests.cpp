@@ -1,7 +1,6 @@
 #include "format_test_helpers.hpp"
 #include "format_utils.hpp"
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 int main(int argc, char* argv[])
