@@ -116,11 +116,6 @@ namespace fmtu
             requires std::formattable<typename std::remove_cvref_t<T>::element_type, char>;
         };
 
-#ifdef FMTU_ENABLE_JSON
-        template<typename T>
-        concept JsonSerializable = requires { glz::write<glz::opts{ .prettify = true }>(T{}).has_value(); };
-#endif
-
         // ---------- Adapter ----------
 
         template<typename T>
@@ -522,6 +517,37 @@ namespace fmtu
             return it;
         }
 
+#ifdef FMTU_ENABLE_JSON
+        template<typename T>
+        consteval bool is_type_json_serializable();
+
+        template<FormatInfo Info>
+        consteval bool is_info_json_serializable()
+        {
+            return []<size_t... Is>(std::index_sequence<Is...>) {
+                return (is_type_json_serializable<std::tuple_element_t<Is, typename Info::MemberTypes>>() &&
+                        ...);
+            }(std::make_index_sequence<Info::numMembers()>{});
+        }
+
+        template<typename T>
+        consteval bool is_type_json_serializable()
+        {
+            if constexpr (HasAdapter<T>) {
+                return is_info_json_serializable<AdapterInfo<T>>();
+            }
+            else if constexpr (Reflectable<T>) {
+                return is_info_json_serializable<ReflectableInfo<T>>();
+            }
+            else {
+                return glz::write_supported<T, glz::JSON>;
+            }
+        }
+
+        template<typename T>
+        concept JsonSerializable = is_type_json_serializable<T>();
+#endif
+
         template<FormatInfo Info, typename Ctx, typename T>
         auto handle_class_opts(Ctx& ctx, const T& t, const FmtOpts& fmt_opts)
           -> std::optional<typename Ctx::iterator>
@@ -529,15 +555,10 @@ namespace fmtu
 #ifdef FMTU_ENABLE_JSON
             if (fmt_opts.json) {
                 if constexpr (JsonSerializable<T>) {
-                    if (fmt_opts.pretty) {
-                        std::string json_str{ glz::write<glz::opts{ .prettify = true }>(t).value_or(
-                          "JSON Error") };
-                        return std::format_to(ctx.out(), "{}", json_str);
-                    }
-                    else {
-                        std::string json_str{ glz::write_json(t).value_or("JSON Error") };
-                        return std::format_to(ctx.out(), "{}", json_str);
-                    }
+                    auto json_str{ (fmt_opts.pretty ? glz::write<glz::opts{ .prettify = true }>(t)
+                                                    : glz::write_json(t))
+                                     .value_or("JSON Error") };
+                    return std::format_to(ctx.out(), "{}", json_str);
                 }
             }
 #endif
@@ -558,48 +579,46 @@ struct std::formatter<T>
 {
     using Info = fmtu::detail::AdapterInfo<T>;
 
-    bool pretty{ false };
+    // clang-format off
+    static constexpr fmtu::detail::FmtOpts ALLOWED_FMT_OPTS{ 
+        .pretty = true,
+        .json = FMTU_IS_JSON_ENABLED,
+        .verbose = true 
+    };
+    // clang-format on
+
+    fmtu::detail::FmtOpts fmtOpts{};
 
     template<typename Ctx>
     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
     {
-        auto it{ ctx.begin() };
-        if (it == ctx.end()) {
-            return it;
+        auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts) };
+        if (fmtOpts.json) {
+            if constexpr (!fmtu::detail::JsonSerializable<T>) {
+                throw std::format_error("JSON formatting not possible: Type is not serializable");
+            }
         }
-
-        if (*it == 'p') {
-            pretty = true;
-            ++it;
-        }
-
-        if (it != ctx.end() && *it != '}') {
-            throw std::format_error("Invalid format args");
-        }
-
         return it;
     }
 
     template<typename Ctx>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
-        if (pretty) {
-            auto args{ fmtu::detail::make_flat_args_tuple(t) };
-            static constexpr auto fmt{ fmtu::detail::class_pretty_format<Info>() };
-            return std::apply([&ctx](const auto&... args) { return std::format_to(ctx.out(), fmt, args...); },
-                              args);
+        if (fmtOpts.hasOpt()) {
+            if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmtOpts) }; it.has_value()) {
+                return it.value();
+            }
         }
-        else {
-            auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) {
-                using Fields = typename fmtu::Adapter<std::remove_cvref_t<T>>::Fields;
-                return fmtu::detail::make_args_tuple(
-                  fmtu::detail::check_arg(std::invoke(std::tuple_element_t<Is, Fields>::VALUE, t))...);
-            }(std::make_index_sequence<Info::numMembers()>{}) };
 
-            static constexpr auto fmt{ fmtu::detail::class_format<Info>() };
-            return std::apply([&ctx](const auto&... args) { return std::format_to(ctx.out(), fmt, args...); },
-                              args);
-        }
+        auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) {
+            using Fields = typename fmtu::Adapter<std::remove_cvref_t<T>>::Fields;
+            return fmtu::detail::make_args_tuple(
+              fmtu::detail::check_arg(std::invoke(std::tuple_element_t<Is, Fields>::VALUE, t))...);
+        }(std::make_index_sequence<Info::numMembers()>{}) };
+
+        static constexpr auto fmt{ fmtu::detail::class_format<Info>() };
+        return std::apply([&ctx](const auto&... args) { return std::format_to(ctx.out(), fmt, args...); },
+                          args);
     }
 };
 
@@ -629,8 +648,7 @@ struct std::formatter<T>
         auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmtOpts) };
         if (fmtOpts.json) {
             if constexpr (!fmtu::detail::JsonSerializable<T>) {
-                throw std::format_error(
-                  "JSON formatting not possible: Type contains non-serializable members");
+                throw std::format_error("JSON formatting not possible: Type is not serializable");
             }
         }
         return it;
