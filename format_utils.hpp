@@ -637,9 +637,7 @@ namespace fmtu
                     });
                 }) };
 
-                for (auto incompatible_spec : incompatible_view) {
-                    incompatible.add(incompatible_spec);
-                }
+                std::ranges::for_each(incompatible_view, [&](auto val) { incompatible.add(val); });
 
                 incompatible_specs.emplace(spec, incompatible);
             }
