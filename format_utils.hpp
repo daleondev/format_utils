@@ -17,6 +17,7 @@
 #include <concepts>
 #include <format>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <tuple>
 #include <utility>
@@ -53,7 +54,9 @@ namespace fmtu
         struct FixedVector
         {
             std::array<T, Capacity> data{};
-            size_t size = 0;
+            size_t size{ 0 };
+
+            constexpr FixedVector() = default;
 
             template<size_t Size>
             constexpr FixedVector(std::array<T, Size>&& arr)
@@ -63,14 +66,43 @@ namespace fmtu
                 std::copy_n(std::make_move_iterator(arr.begin()), Size, data.begin());
             }
 
+            constexpr auto add(T val) -> void
+            {
+                if (size >= Capacity) {
+                    throw std::out_of_range("FixedMap is full!");
+                }
+                data[size++] = std::move(val);
+            }
+
             constexpr auto begin() const { return data.begin(); }
             constexpr auto end() const { return data.begin() + size; }
         };
 
-        template<typename Key, typename Value, size_t Size>
+        template<typename Key, typename Value, size_t Capacity>
         struct FixedMap
         {
-            std::array<std::pair<Key, Value>, Size> data;
+            std::array<std::pair<Key, Value>, Capacity> data{};
+            size_t size = 0;
+
+            template<typename... Args>
+            constexpr void emplace(Args&&... args)
+            {
+                auto args_tuple = std::forward_as_tuple(args...);
+
+                auto it{ std::ranges::find_if(
+                  *this, [&args_tuple](const auto& pair) { return pair.first == std::get<0>(args_tuple); }) };
+
+                if (it != end()) {
+                    it->second = std::move(std::get<1>(args_tuple));
+                    return;
+                }
+
+                if (size >= Capacity) {
+                    throw std::out_of_range("FixedMap is full!");
+                }
+
+                std::construct_at(&data[size++], std::forward<Args>(args)...);
+            }
 
             constexpr auto at(const Key& key) const -> std::optional<Value>
             {
@@ -83,6 +115,11 @@ namespace fmtu
 
                 return std::nullopt;
             }
+
+            constexpr auto begin() { return data.begin(); }
+            constexpr auto end() { return data.begin() + size; }
+            constexpr auto begin() const { return data.begin(); }
+            constexpr auto end() const { return data.begin() + size; }
         };
 
         // ---------- Namespace Std ----------
@@ -480,31 +517,52 @@ namespace fmtu
         };
 
         template<ScopedEnum T>
-        consteval auto enum_size() -> size_t
+        consteval auto underlying_enumerators()
         {
             constexpr auto min{ reflect::enum_min(T{}) };
             constexpr auto max{ reflect::enum_max(T{}) };
-            return reflect::detail::enum_cases<T, min, max>.size();
+            return reflect::detail::enum_cases<T, min, max>;
+        }
+
+        template<ScopedEnum T>
+        consteval auto num_enumerators() -> size_t
+        {
+            return underlying_enumerators<T>().size();
+        }
+
+        // clang-format off
+        template<ScopedEnum T>
+        consteval auto enumerators() -> std::array<T, num_enumerators<T>()>
+        {
+            std::array<T, num_enumerators<T>()> result{};
+            std::ranges::copy(underlying_enumerators<T>() |
+                                std::views::transform([](std::underlying_type_t<T> u) { 
+                                    return static_cast<T>(u); 
+                                }),
+                                result.begin());
+            return result;
         }
 
         template<ScopedEnum T, size_t N>
-        consteval auto inverse_enumerators(const std::array<T, N>& arr) -> decltype(auto)
+        consteval auto enumerators_complement(const std::array<T, N>& arr) -> decltype(auto)
         {
-            constexpr auto min{ reflect::enum_min(T{}) };
-            constexpr auto max{ reflect::enum_max(T{}) };
-            constexpr auto enums{ reflect::detail::enum_cases<T, min, max> };
-            std::array<T, enums.size() - arr.size()> result;
-            // clang-format off
-            std::ranges::copy(enums | 
-                                std::views::filter([&arr](int i) { 
-                                    return std::ranges::none_of(arr, [i](T t) {
-                                        return i == std::to_underlying(t);
+            std::array<T, num_enumerators<T>() - arr.size()> result;
+            std::ranges::copy(enumerators<T>() | 
+                                std::views::filter([&arr](T e) { 
+                                    return std::ranges::none_of(arr, [e](T t) {
+                                        return e == t;
                                     }); 
-                                }) |
-                                std::views::transform([](int i) { return static_cast<T>(i); }),
+                                }),
                               result.begin());
-            // clang-format on
             return result;
+        }
+        // clang-format on
+
+        template<typename T, size_t N>
+        consteval auto is_array_unique(std::array<T, N> arr) -> bool
+        {
+            std::ranges::sort(arr);
+            return std::ranges::adjacent_find(arr) == arr.end();
         }
 
         enum class FmtSpecs : char
@@ -515,8 +573,7 @@ namespace fmtu
             Yaml = 'y',
             Toml = 't'
         };
-        // static constexpr auto NUM_FMT_SPECS{ enum_size<FmtSpecs>() };
-        static constexpr auto NUM_FMT_SPECS{ 5uz }; // tmp
+        static constexpr auto NUM_FMT_SPECS{ num_enumerators<FmtSpecs>() };
 
         struct FmtOpts
         {
@@ -531,58 +588,21 @@ namespace fmtu
             constexpr auto has_glaze() const -> bool;
         };
 
-        template<auto... S>
-            requires(std::same_as<FmtSpecs, decltype(S)> && ...)
-        struct IncompatibleSpecs
-        {
-            static consteval auto get() -> std::array<FmtSpecs, sizeof...(S)> { return { S... }; }
-        };
-
-        template<auto S, typename I>
-            requires std::same_as<FmtSpecs, decltype(S)>
-        static constexpr auto DEFINE_INCOMPATIBEL_SPECS =
-          std::make_pair(S, FixedVector<FmtSpecs, NUM_FMT_SPECS - 1>{ I::get() });
-
-        template<auto... S>
-            requires(std::same_as<FmtSpecs, decltype(S)> && ...)
-        struct CompatibleSpecs
-        {
-            template<auto E>
-                requires(std::same_as<FmtSpecs, decltype(E)>)
-            static consteval auto get() -> std::array<FmtSpecs, enum_size<FmtSpecs>() - (sizeof...(S) + 1)>
-            {
-                return inverse_enumerators(std::array{ E, S... });
-            }
-        };
-
-        template<auto S, typename C>
-            requires std::same_as<FmtSpecs, decltype(S)>
-        static constexpr auto DEFINE_COMPATIBEL_SPECS =
-          std::make_pair(S, FixedVector<FmtSpecs, NUM_FMT_SPECS - 1>{ C::template get<S>() });
+        static constexpr std::array GLAZE_FMT_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
 
         // clang-format off
-        static constexpr FixedMap<FmtSpecs, FixedVector<FmtSpecs, NUM_FMT_SPECS-1>, NUM_FMT_SPECS> FMT_INCOMPATIBEL_SPECS{{{
-            DEFINE_COMPATIBEL_SPECS     <FmtSpecs::Verbose, CompatibleSpecs<FmtSpecs::Pretty>>,
-            DEFINE_INCOMPATIBEL_SPECS   <FmtSpecs::Pretty,  IncompatibleSpecs<FmtSpecs::Yaml, FmtSpecs::Toml>>,
-            DEFINE_COMPATIBEL_SPECS     <FmtSpecs::Json,    CompatibleSpecs<FmtSpecs::Pretty>>,
-            DEFINE_COMPATIBEL_SPECS     <FmtSpecs::Yaml,    CompatibleSpecs<>>,
-            DEFINE_COMPATIBEL_SPECS     <FmtSpecs::Toml,    CompatibleSpecs<>>
-        }}};
-
         static constexpr FixedMap<FmtSpecs, bool FmtOpts::*, NUM_FMT_SPECS> FMT_SPECS_TO_OPTS{{{ 
-            { FmtSpecs::Verbose, &FmtOpts::verbose },
-            { FmtSpecs::Pretty,  &FmtOpts::pretty },
-            { FmtSpecs::Json,    &FmtOpts::json },
-            { FmtSpecs::Yaml,    &FmtOpts::yaml },
-            { FmtSpecs::Toml,    &FmtOpts::toml }
+            std::make_pair(FmtSpecs::Verbose,   &FmtOpts::verbose),
+            std::make_pair(FmtSpecs::Pretty,    &FmtOpts::pretty),
+            std::make_pair(FmtSpecs::Json,      &FmtOpts::json),
+            std::make_pair(FmtSpecs::Yaml,      &FmtOpts::yaml),
+            std::make_pair(FmtSpecs::Toml,      &FmtOpts::toml) 
         }}};
-
-        static constexpr std::array GLAZE_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
         // clang-format on
 
         constexpr auto FmtOpts::has_glaze() const -> bool
         {
-            return std::ranges::any_of(GLAZE_SPECS, [this](FmtSpecs spec) {
+            return std::ranges::any_of(GLAZE_FMT_SPECS, [this](FmtSpecs spec) {
                 auto opt{ FMT_SPECS_TO_OPTS.at(spec) };
                 if (!opt.has_value()) {
                     return false;
@@ -590,6 +610,44 @@ namespace fmtu
                 return (*this).*opt.value();
             });
         }
+
+        static constexpr std::array COMPATIBLE_FMT_SPEC_PAIRS{
+            std::make_pair(FmtSpecs::Verbose, FmtSpecs::Pretty),
+            std::make_pair(FmtSpecs::Pretty, FmtSpecs::Json)
+        };
+
+        static_assert(is_array_unique(COMPATIBLE_FMT_SPEC_PAIRS),
+                      "Compatible format specifier pairs not unique");
+
+        consteval auto generate_incompatible_specs()
+        {
+            FixedMap<FmtSpecs, FixedVector<FmtSpecs, NUM_FMT_SPECS - 1>, NUM_FMT_SPECS> incompatible_specs;
+
+            constexpr auto specs{ enumerators<FmtSpecs>() };
+            for (auto spec : specs) {
+                FixedVector<FmtSpecs, NUM_FMT_SPECS - 1> incompatible{};
+
+                auto incompatible_view{ specs | std::views::filter([spec](auto other) {
+                    if (spec == other) {
+                        return false;
+                    }
+                    return std::ranges::none_of(COMPATIBLE_FMT_SPEC_PAIRS, [&](const auto& pair) {
+                        return (pair.first == spec && pair.second == other) ||
+                               (pair.first == other && pair.second == spec);
+                    });
+                }) };
+
+                for (auto incompatible_spec : incompatible_view) {
+                    incompatible.add(incompatible_spec);
+                }
+
+                incompatible_specs.emplace(spec, incompatible);
+            }
+
+            return incompatible_specs;
+        }
+
+        static constexpr auto FMT_INCOMPATIBEL_SPECS{ generate_incompatible_specs() };
 
         template<FmtOpts AllowedOpts, typename Ctx>
         constexpr auto parse_fmt_opts(Ctx& ctx, FmtOpts& active_opts) -> Ctx::iterator
