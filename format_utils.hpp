@@ -726,7 +726,7 @@ namespace fmtu
         };
 
         template<typename T>
-        concept HasGlazeMeta = requires { glz::meta<std::remove_cvref_t<T>>::value; };
+        constexpr bool has_glaze_meta_v = requires { glz::meta<std::remove_cvref_t<T>>::value; };
 #else
         enum class GlazeFormat : uint32_t
         {
@@ -740,10 +740,16 @@ namespace fmtu
         {
             return false;
         }
+
+        template<typename T>
+        constexpr bool has_glaze_meta_v{ false };
 #endif
 
         template<typename T, GlazeFormat Fmt>
         concept GlazeSerializable = is_type_glaze_serializable<T, Fmt>();
+
+        template<typename T>
+        concept HasGlazeMeta = has_glaze_meta_v<T>;
 
         // ---------- Format Opts ----------
 
