@@ -19,6 +19,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -553,14 +554,19 @@ namespace fmtu
                                         return e == t;
                                     }); 
                                 }),
-                              result.begin());
+                                result.begin());
             return result;
         }
         // clang-format on
 
-        template<typename T, size_t N>
-        consteval auto is_array_unique(std::array<T, N> arr) -> bool
+        template<typename First, typename Second, size_t N>
+        consteval auto is_array_of_pairs_unique(std::array<std::pair<First, Second>, N> arr) -> bool
         {
+            if constexpr (std::same_as<First, Second>) {
+                std::ranges::for_each(
+                  arr | std::views::filter([](const auto& val) { return val.second < val.first; }),
+                  [](auto& val) { std::swap(val.first, val.second); });
+            }
             std::ranges::sort(arr);
             return std::ranges::adjacent_find(arr) == arr.end();
         }
@@ -616,7 +622,7 @@ namespace fmtu
             std::make_pair(FmtSpecs::Pretty, FmtSpecs::Json)
         };
 
-        static_assert(is_array_unique(COMPATIBLE_FMT_SPEC_PAIRS),
+        static_assert(is_array_of_pairs_unique(COMPATIBLE_FMT_SPEC_PAIRS),
                       "Compatible format specifier pairs not unique");
 
         consteval auto generate_incompatible_specs()
