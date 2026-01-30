@@ -659,9 +659,11 @@ namespace fmtu
 
         static constexpr auto FMT_INCOMPATIBEL_SPECS{ generate_incompatible_specs() };
 
-#ifdef FMTU_ENABLE_GLAZE
         // ---------- Glaze Support ----------
 
+        static constexpr std::array GLAZE_FMT_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
+
+#ifdef FMTU_ENABLE_GLAZE
         template<typename T>
         consteval bool is_type_glaze_serializable();
 
@@ -710,6 +712,9 @@ namespace fmtu
                                                  glaze_field_value<std::tuple_element_t<Is, Fields>>())...));
             }(std::make_index_sequence<std::tuple_size_v<Fields>>{});
         };
+
+        template<typename T>
+        concept HasGlazeMeta = requires { glz::meta<std::remove_cvref_t<T>>::value; };
 #else
         template<typename T>
         consteval bool is_type_glaze_serializable()
@@ -735,8 +740,6 @@ namespace fmtu
             constexpr auto has_opt() const -> bool { return *this != FmtOpts{}; }
             constexpr auto has_glaze() const -> bool;
         };
-
-        static constexpr std::array GLAZE_FMT_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
 
         // clang-format off
         static constexpr FixedMap<FmtSpecs, bool FmtOpts::*, NUM_FMT_SPECS> FMT_SPECS_TO_OPTS{std::array{ 
@@ -806,9 +809,11 @@ namespace fmtu
                 }
 #endif
 #ifdef FMTU_ENABLE_YAML
-                if (fmt_opts.yaml) {
-                    auto yaml_str{ glz::write_yaml(t).value_or("YAML Error") };
-                    return std::format_to(ctx.out(), "{}", yaml_str);
+                if constexpr (HasGlazeMeta<T>) {
+                    if (fmt_opts.yaml) {
+                        auto yaml_str{ glz::write_yaml(t).value_or("YAML Error") };
+                        return std::format_to(ctx.out(), "{}", yaml_str);
+                    }
                 }
 #endif
 #ifdef FMTU_ENABLE_TOML
@@ -862,6 +867,12 @@ struct std::formatter<T>
             if (fmt_opts.has_glaze()) {
                 static_assert(fmtu::detail::GlazeSerializable<T>,
                               "Formatting not possible: Type is not glaze serializable");
+                if constexpr (fmtu::IS_YAML_ENABLED) {
+                    if (fmt_opts.yaml) {
+                        static_assert(fmtu::detail::HasGlazeMeta<T>,
+                                      "Formatting not possible: Type has no glaze meta");
+                    }
+                }
             }
         }
         return it;
@@ -919,6 +930,12 @@ struct std::formatter<T>
             if (fmt_opts.has_glaze()) {
                 static_assert(fmtu::detail::GlazeSerializable<T>,
                               "Formatting not possible: Type is not glaze serializable");
+                if constexpr (fmtu::IS_YAML_ENABLED) {
+                    if (fmt_opts.yaml) {
+                        static_assert(fmtu::detail::HasGlazeMeta<T>,
+                                      "Formatting not possible: Type has no glaze meta");
+                    }
+                }
             }
         }
         return it;

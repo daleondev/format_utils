@@ -26,18 +26,6 @@ struct Config
     bool is_active;
 };
 
-template<>
-struct fmtu::Adapter<Point>
-{
-    using Fields = std::tuple<fmtu::Field<"x", &Point::x>, fmtu::Field<"y", &Point::y>>;
-};
-
-template<>
-struct fmtu::Adapter<Config>
-{
-    using Fields = std::tuple<fmtu::Field<"id", &Config::id>, fmtu::Field<"name", &Config::name>>;
-};
-
 // ==========================================
 // 2. Encapsulated Classes (via fmtu::Adapter)
 // ==========================================
