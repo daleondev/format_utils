@@ -21,7 +21,7 @@ if(FMTU_ENABLE_JSON OR FMTU_ENABLE_YAML OR FMTU_ENABLE_TOML)
     FetchContent_Declare(
         glaze
         GIT_REPOSITORY  https://github.com/stephenberry/glaze.git
-        GIT_TAG         main
+        GIT_TAG         v7.0.2
         GIT_SHALLOW     TRUE
     )
     FetchContent_MakeAvailable(glaze)

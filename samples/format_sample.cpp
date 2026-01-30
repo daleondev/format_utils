@@ -1,77 +1,156 @@
 #include "format_utils.hpp"
+
+#include <iostream>
+#include <memory>
 #include <mutex>
+#include <optional>
 #include <print>
+#include <string>
+#include <vector>
 
-class MyClassA
+// ==========================================
+// 1. Aggregates (Automatic Reflection)
+// ==========================================
+struct Point
+{
+    int x;
+    int y;
+};
+
+struct Config
+{
+    int id;
+    std::string name;
+    std::vector<double> values;
+    Point resolution;
+    bool is_active;
+};
+
+// ==========================================
+// 2. Encapsulated Classes (via fmtu::Adapter)
+// ==========================================
+class User
 {
   public:
-    MyClassA(int i, std::string s)
-      : m_i(i)
-      , m_s(s)
-    {
-    }
-    int getI() const { return m_i; }
-    std::string getS() const { return m_s; }
-
-  private:
-    int m_i;
-    std::string m_s;
-};
-
-template<>
-struct fmtu::Adapter<MyClassA>
-{
-    using Fields = std::tuple<fmtu::Field<"i", &MyClassA::getI>, fmtu::Field<"s", &MyClassA::getS>>;
-};
-
-struct Nested
-{
-    int x = 1;
-    MyClassA my_class_a{ -265, "test" };
-};
-
-class MyClassB
-{
-  public:
-    MyClassB(int i, std::string s)
-      : m_i(i)
-      , m_s(s)
-      , m_nested()
+    User(std::string name, std::string role, int level)
+      : m_name(std::move(name))
+      , m_role(std::move(role))
+      , m_level(level)
     {
     }
 
-    int m_i;
-    std::string m_s;
-    std::mutex m_mutex;
-
-    const Nested& getNested() const { return m_nested; }
+    // Getters for the adapter
+    const std::string& getName() const { return m_name; }
+    const std::string& getRole() const { return m_role; }
+    int getLevel() const { return m_level; }
 
   private:
-    Nested m_nested;
+    std::string m_name;
+    std::string m_role;
+    int m_level;
+    // Private mutex (not formatted)
+    std::mutex m_mtx;
 };
 
+// Register the adapter
 template<>
-struct fmtu::Adapter<MyClassB>
+struct fmtu::Adapter<User>
 {
-    using Fields = std::tuple<fmtu::Field<"i", &MyClassB::m_i>,
-                              fmtu::Field<"s", &MyClassB::m_s>,
-                              fmtu::Field<"nested", &MyClassB::getNested>>;
+    using Fields = std::tuple<fmtu::Field<"name", &User::getName>,
+                              fmtu::Field<"role", &User::getRole>,
+                              fmtu::Field<"level", &User::getLevel>>;
 };
 
-enum class MyEnum
+// ==========================================
+// 3. Scoped Enums
+// ==========================================
+enum class Status
 {
-    EnumA,
-    EnumB,
-    EnumC
+    Idle,
+    Processing,
+    Completed,
+    Failed
 };
 
 int main()
 {
-    MyClassA a(42, "hello");
-    MyClassB b(44, "hello2");
-    std::println("{:pj}", a);
-    std::println("{:pj}", b);
-    std::println("{:pj}", Nested{});
-    std::println("{:y}", Nested{});
-    std::println("{:t}", Nested{});
+    std::println("=========================================");
+    std::println("   Format Utils Library Showcase");
+    std::println("=========================================\n");
+
+    // -------------------------------------------------
+    // Scenario 1: Automatic Reflection for Aggregates
+    // -------------------------------------------------
+    std::println("--- 1. Automatic Reflection (Structs) ---");
+    Config cfg{ 101, "SimulationConfig", { 0.5, 1.2, 3.14 }, { 1920, 1080 }, true };
+
+    // Default format (Compact)
+    std::println("Default: {}", cfg);
+    // Pretty format (Indented)
+    std::println("Pretty: \n{:p}", cfg);
+    std::println("");
+
+    // -------------------------------------------------
+    // Scenario 2: Adapters for Private Members
+    // -------------------------------------------------
+    std::println("--- 2. Adapters (Classes with private data) ---");
+    User user("Alice", "Administrator", 99);
+
+    std::println("User (Default): {}", user);
+    std::println("User (Pretty): \n{:p}", user);
+    std::println("");
+
+    // -------------------------------------------------
+    // Scenario 3: Serialization (JSON / TOML)
+    // -------------------------------------------------
+    std::println("--- 3. Serialization (Glaze Integration) ---");
+
+    // JSON
+    std::println("Compact JSON: {:j}", cfg);
+    std::println("Pretty JSON: \n{:pj}", cfg);
+
+    // TOML
+    std::println("TOML: \n{:t}", cfg);
+    std::println("");
+
+    // -------------------------------------------------
+    // Scenario 4: Enums
+    // -------------------------------------------------
+    std::println("--- 4. Scoped Enums ---");
+    Status current_status = Status::Processing;
+
+    std::println("Status (Default): {}", current_status);
+    std::println("Status (Verbose): {:v}", current_status);
+    std::println("");
+
+    // -------------------------------------------------
+    // Scenario 5: Pointers and Optionals
+    // -------------------------------------------------
+    std::println("--- 5. Pointers, Smart Pointers & Optionals ---");
+
+    // Optional
+    std::optional<Point> opt_point;
+    std::println("Empty Optional:      {}", opt_point);
+    opt_point = Point{ 10, 20 };
+    std::println("Filled Optional:     {}", opt_point);
+
+    // Raw Nullptr
+    User* raw_ptr = nullptr;
+    std::println("Null Ptr:            {}", raw_ptr);
+
+    // Raw Pointer
+    raw_ptr = new User("Bob", "Guest", 1);
+    std::println("Raw Ptr (JSON):      {:j}", raw_ptr);
+
+    // Smart Nullptr
+    std::unique_ptr<User> smart_ptr = nullptr;
+    std::println("Smart Null Ptr:      {}", smart_ptr);
+
+    // Smart Pointer
+    smart_ptr.reset(raw_ptr);
+    std::println("Smart Ptr (Pretty):  {:p}", smart_ptr);
+
+    std::println("\n=========================================");
+
+    return 0;
 }
