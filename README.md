@@ -1,12 +1,12 @@
-# FormatUtils
+# format_utils
 
-**FormatUtils** is a modern C++23 header-only library that extends `std::format` with powerful capabilities for automatic reflection, serialization, and formatted output of user-defined types. It seamlessly integrates with `std::format`, making it effortless to print complex data structures, including aggregates, classes with private members, enums, smart pointers, and optional values.
+**format_utils** is a modern C++23 header-only library that extends `std::format` with powerful capabilities for automatic reflection, serialization, and formatted output of user-defined types. It seamlessly integrates with `std::format`, making it effortless to print complex data structures, including aggregates, classes with private members, enums, pointers, and optional values.
 
 Key features include:
 *   **Automatic Reflection:** Format structs and aggregates without writing any boilerplate code.
-*   **Non-Intrusive Adapters:** specialized adapters to format classes with private members or custom layouts.
-*   **Scoped Enum Support:** Automatically print enum names instead of integer values.
-*   **Smart Pointer & Optional Support:** Built-in formatting for `std::unique_ptr`, `std::shared_ptr`, and `std::optional`.
+*   **Non-Intrusive Adapters:** Specialized adapters to format classes with private members or custom layouts.
+*   **Enum Support:** Automatically print scoped enum names instead of integer values.
+*   **Pointer & Optional Support:** Built-in formatting for raw pointers, smart pointers, and `std::optional`.
 *   **Serialization Integration:** Out-of-the-box support for **JSON**, **YAML**, and **TOML** via [Glaze](https://github.com/stephenberry/glaze).
 *   **Format Specifiers:** Custom specifiers for verbose, pretty-print, and serialized output (e.g., `{:p}`, `{:j}`, `{:v}`).
 
@@ -17,7 +17,7 @@ Key features include:
 
 ## Installation
 
-Since FormatUtils is header-only, you can simply include the `format_utils.hpp` file in your project.
+Since format_utils is header-only, you can simply include the `format_utils.hpp` file in your project.
 
 ### CMake FetchContent
 
@@ -28,7 +28,7 @@ include(FetchContent)
 
 FetchContent_Declare(
     format_utils
-    GIT_REPOSITORY https://github.com/your-repo/format_utils.git
+    GIT_REPOSITORY https://github.com/daleondev/format_utils.git
     GIT_TAG        main
 )
 FetchContent_MakeAvailable(format_utils)
@@ -46,7 +46,7 @@ Include the header:
 
 ### 1. Automatic Reflection (Aggregates)
 
-FormatUtils automatically reflects aggregate structures using C++23 reflection capabilities.
+format_utils automatically reflects aggregate structures.
 
 ```cpp
 struct Point {
@@ -67,7 +67,8 @@ int main() {
     
     // Default format (Compact)
     std::println("{}", cfg);
-    // Output: [ Config: { id: 101, name: SimulationConfig, values: [0.5, 1.2, 3.14], resolution: [ Point: { x: 1920, y: 1080 } ], is_active: true } ]
+    // Output: [ Config: { id: 101, name: SimulationConfig, values: [0.5, 1.2, 3.14], 
+    // resolution: [ Point: { x: 1920, y: 1080 } ], is_active: true } ]
 
     // Pretty format (Indented) - {:p}
     std::println("{:p}", cfg);
