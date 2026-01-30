@@ -24,7 +24,10 @@
 #include <utility>
 #include <vector>
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
 
 namespace fmtu
 {
@@ -1032,3 +1035,7 @@ struct std::formatter<T> : std::formatter<typename T::element_type*>
         return std::formatter<typename T::element_type*>::format(t.get(), ctx);
     }
 };
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
