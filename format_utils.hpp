@@ -741,6 +741,7 @@ namespace fmtu
             constexpr auto has_glaze() const -> bool;
         };
 
+#ifndef __INTELLISENSE__
         // clang-format off
         static constexpr FixedMap<FmtSpecs, bool FmtOpts::*, NUM_FMT_SPECS> FMT_SPECS_TO_OPTS{std::array{ 
             std::make_pair(FmtSpecs::Verbose,   &FmtOpts::verbose),
@@ -761,6 +762,7 @@ namespace fmtu
                 return (*this).*opt.value();
             });
         }
+#endif
 
         template<FmtOpts AllowedOpts, typename Ctx>
         constexpr auto parse_fmt_opts(Ctx& ctx, FmtOpts& active_opts) -> Ctx::iterator
