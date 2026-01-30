@@ -16,11 +16,12 @@ target_link_libraries(
     PRIVATE
     GTest::gtest_main
     format_utils::format_utils
+    format_utils::compiler_warnings
 )
 
 target_compile_features(
     format_tests
-    INTERFACE
+    PRIVATE
     cxx_std_23
 )
 

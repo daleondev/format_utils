@@ -12,6 +12,7 @@ target_link_libraries(
     format_sample
     PRIVATE
     format_utils::format_utils
+    format_utils::compiler_warnings
     stdc++exp
 )
 

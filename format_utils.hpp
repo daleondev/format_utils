@@ -24,6 +24,8 @@
 #include <utility>
 #include <vector>
 
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fmtu
 {
 #ifdef FMTU_ENABLE_GLAZE
@@ -966,6 +968,7 @@ template<fmtu::detail::ScopedEnum T>
 struct std::formatter<T>
 {
     static constexpr fmtu::detail::FmtOpts ALLOWED_FMT_OPTS{ .verbose = true };
+
     fmtu::detail::FmtOpts fmt_opts{};
 
     template<typename Ctx>

@@ -44,6 +44,15 @@ if(FMTU_ENABLE_JSON OR FMTU_ENABLE_YAML OR FMTU_ENABLE_TOML)
     )
 endif()
 
+add_library(format_utils_compiler_warnings INTERFACE)
+add_library(format_utils::compiler_warnings ALIAS format_utils_compiler_warnings)
+target_compile_options(
+    format_utils_compiler_warnings
+    INTERFACE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+)
+
 option(BUILD_SAMPLES "Build the sample executables." ON)
 if(BUILD_SAMPLES)
     add_subdirectory(samples)
