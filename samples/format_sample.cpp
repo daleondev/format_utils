@@ -96,7 +96,7 @@ int main()
     std::println("");
 
     // -------------------------------------------------
-    // Scenario 3: Serialization (JSON / TOML)
+    // Scenario 3: Serialization (JSON / YAML / TOML)
     // -------------------------------------------------
     std::println("--- 3. Serialization (Glaze Integration) ---");
 
