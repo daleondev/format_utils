@@ -26,6 +26,18 @@ struct Config
     bool is_active;
 };
 
+template<>
+struct fmtu::Adapter<Point>
+{
+    using Fields = std::tuple<fmtu::Field<"x", &Point::x>, fmtu::Field<"y", &Point::y>>;
+};
+
+template<>
+struct fmtu::Adapter<Config>
+{
+    using Fields = std::tuple<fmtu::Field<"id", &Config::id>, fmtu::Field<"name", &Config::name>>;
+};
+
 // ==========================================
 // 2. Encapsulated Classes (via fmtu::Adapter)
 // ==========================================
@@ -106,12 +118,24 @@ int main()
     std::println("--- 3. Serialization (Glaze Integration) ---");
 
     // JSON
-    std::println("Compact JSON: {:j}", cfg);
-    std::println("Pretty JSON: \n{:pj}", cfg);
+    if constexpr (fmtu::IS_JSON_ENABLED) {
+        std::println("Compact JSON: {:j}", cfg);
+        std::println("Pretty JSON: \n{:pj}", cfg);
+    }
+
+    // YAML
+    if constexpr (fmtu::IS_YAML_ENABLED) {
+        std::println("YAML: \n{:y}", cfg);
+    }
 
     // TOML
-    std::println("TOML: \n{:t}", cfg);
-    std::println("");
+    if constexpr (fmtu::IS_TOML_ENABLED) {
+        std::println("TOML: \n{:t}", cfg);
+    }
+
+    if constexpr (fmtu::IS_GLAZE_ENABLED) {
+        std::println("");
+    }
 
     // -------------------------------------------------
     // Scenario 4: Enums
@@ -140,7 +164,7 @@ int main()
 
     // Raw Pointer
     raw_ptr = new User("Bob", "Guest", 1);
-    std::println("Raw Ptr (JSON):      {:j}", raw_ptr);
+    std::println("Raw Ptr:             {}", raw_ptr);
 
     // Smart Nullptr
     std::unique_ptr<User> smart_ptr = nullptr;
@@ -148,7 +172,7 @@ int main()
 
     // Smart Pointer
     smart_ptr.reset(raw_ptr);
-    std::println("Smart Ptr (Pretty):  {:p}", smart_ptr);
+    std::println("Smart Ptr:           {}", smart_ptr);
 
     std::println("\n=========================================");
 

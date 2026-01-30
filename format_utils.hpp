@@ -55,7 +55,7 @@ namespace fmtu
         struct FixedVector
         {
             std::array<T, Capacity> data{};
-            size_t size{ 0 };
+            size_t size{ 0uz };
 
             constexpr FixedVector() = default;
 
@@ -63,64 +63,98 @@ namespace fmtu
             constexpr FixedVector(std::array<T, Size>&& arr)
               : size{ Size }
             {
-                static_assert(Size <= Capacity, "Input array exceeds FixedVector capacity");
-                std::copy_n(std::make_move_iterator(arr.begin()), Size, data.begin());
+                static_assert(Size <= Capacity, "Input array exceeds Vector capacity!");
+                std::ranges::move(arr | std::views::take(size), data.begin());
             }
 
-            constexpr auto add(T val) -> void
+            constexpr auto add(this auto& self, T val) -> void
             {
-                if (size >= Capacity) {
-                    throw std::out_of_range("FixedMap is full!");
+                if (self.size >= Capacity) {
+                    throw std::out_of_range("Vector is full!");
                 }
-                data[size++] = std::move(val);
+                self.data[self.size++] = std::move(val);
             }
 
-            constexpr auto begin() const { return data.begin(); }
-            constexpr auto end() const { return data.begin() + size; }
+            constexpr auto at(this const auto& self, size_t index) -> T
+            {
+                if (index >= self.size) {
+                    throw std::out_of_range("Index out of range!");
+                }
+                return self.data[index];
+            }
+
+            template<typename Self>
+                requires std::is_lvalue_reference_v<Self>
+            constexpr auto begin(this Self&& self)
+            {
+                return std::forward<Self>(self).data.begin();
+            }
+
+            template<typename Self>
+                requires std::is_lvalue_reference_v<Self>
+            constexpr auto end(this Self&& self)
+            {
+                return std::forward<Self>(self).data.begin() + self.size;
+            }
         };
 
         template<typename Key, typename Value, size_t Capacity>
         struct FixedMap
         {
             std::array<std::pair<Key, Value>, Capacity> data{};
-            size_t size = 0;
+            size_t size{ 0uz };
 
-            template<typename... Args>
-            constexpr void emplace(Args&&... args)
+            constexpr FixedMap() = default;
+
+            template<size_t Size>
+            constexpr FixedMap(std::array<std::pair<Key, Value>, Size>&& arr)
+              : size{ Size }
             {
-                auto args_tuple = std::forward_as_tuple(args...);
+                static_assert(Size <= Capacity, "Input array exceeds Map capacity!");
+                std::ranges::move(arr | std::views::take(size), data.begin());
+            }
 
+            constexpr void insert(this auto& self, std::pair<Key, Value> newElement)
+            {
                 auto it{ std::ranges::find_if(
-                  *this, [&args_tuple](const auto& pair) { return pair.first == std::get<0>(args_tuple); }) };
+                  self, [&newElement](const auto& element) { return element.first == newElement.first; }) };
 
-                if (it != end()) {
-                    it->second = std::move(std::get<1>(args_tuple));
+                if (it != self.end()) {
+                    it->second = std::move(newElement.second);
                     return;
                 }
 
-                if (size >= Capacity) {
-                    throw std::out_of_range("FixedMap is full!");
+                if (self.size >= Capacity) {
+                    throw std::out_of_range("Map is full!");
                 }
 
-                std::construct_at(&data[size++], std::forward<Args>(args)...);
+                self.data[self.size++] = std::move(newElement);
             }
 
-            constexpr auto at(const Key& key) const -> std::optional<Value>
+            constexpr auto at(this const auto& self, const Key& key) -> std::optional<Value>
             {
-                auto it{ std::find_if(
-                  data.begin(), data.end(), [&key](const auto& pair) { return pair.first == key; }) };
+                auto it{ std::ranges::find_if(self, [&key](const auto& pair) { return pair.first == key; }) };
 
-                if (it != data.end()) {
+                if (it != self.data.end()) {
                     return it->second;
                 }
 
                 return std::nullopt;
             }
 
-            constexpr auto begin() { return data.begin(); }
-            constexpr auto end() { return data.begin() + size; }
-            constexpr auto begin() const { return data.begin(); }
-            constexpr auto end() const { return data.begin() + size; }
+            template<typename Self>
+                requires std::is_lvalue_reference_v<Self>
+            constexpr auto begin(this Self&& self)
+            {
+                return std::forward<Self>(self).data.begin();
+            }
+
+            template<typename Self>
+                requires std::is_lvalue_reference_v<Self>
+            constexpr auto end(this Self&& self)
+            {
+                return std::forward<Self>(self).data.begin() + self.size;
+            }
         };
 
         // ---------- Namespace Std ----------
@@ -597,13 +631,13 @@ namespace fmtu
         static constexpr std::array GLAZE_FMT_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
 
         // clang-format off
-        static constexpr FixedMap<FmtSpecs, bool FmtOpts::*, NUM_FMT_SPECS> FMT_SPECS_TO_OPTS{{{ 
+        static constexpr FixedMap<FmtSpecs, bool FmtOpts::*, NUM_FMT_SPECS> FMT_SPECS_TO_OPTS{std::array{ 
             std::make_pair(FmtSpecs::Verbose,   &FmtOpts::verbose),
             std::make_pair(FmtSpecs::Pretty,    &FmtOpts::pretty),
             std::make_pair(FmtSpecs::Json,      &FmtOpts::json),
             std::make_pair(FmtSpecs::Yaml,      &FmtOpts::yaml),
             std::make_pair(FmtSpecs::Toml,      &FmtOpts::toml) 
-        }}};
+        }};
         // clang-format on
 
         constexpr auto FmtOpts::has_glaze() const -> bool
@@ -622,8 +656,10 @@ namespace fmtu
             std::make_pair(FmtSpecs::Pretty, FmtSpecs::Json)
         };
 
+#ifndef __INTELLISENSE__
         static_assert(is_array_of_pairs_unique(COMPATIBLE_FMT_SPEC_PAIRS),
                       "Compatible format specifier pairs not unique");
+#endif
 
         consteval auto generate_incompatible_specs()
         {
@@ -645,7 +681,7 @@ namespace fmtu
 
                 std::ranges::for_each(incompatible_view, [&](auto val) { incompatible.add(val); });
 
-                incompatible_specs.emplace(spec, incompatible);
+                incompatible_specs.insert(std::make_pair(spec, incompatible));
             }
 
             return incompatible_specs;
@@ -761,9 +797,7 @@ namespace fmtu
 #endif
 #ifdef FMTU_ENABLE_YAML
                 if (fmt_opts.yaml) {
-                    // TODO: uncomment when glaze is fixed
-                    // auto yaml_str{ glz::write_yaml(t).value_or("YAML Error") };
-                    auto yaml_str{ "" };
+                    auto yaml_str{ glz::write_yaml(t).value_or("YAML Error") };
                     return std::format_to(ctx.out(), "{}", yaml_str);
                 }
 #endif
@@ -915,7 +949,7 @@ struct std::formatter<T>
     auto format(T t, Ctx& ctx) const -> Ctx::iterator
     {
         if (fmt_opts.verbose) {
-            return std::format_to(ctx.out(), "{}:{}", reflect::type_name(t), reflect::enum_name(t));
+            return std::format_to(ctx.out(), "{}::{}", reflect::type_name(t), reflect::enum_name(t));
         }
         return std::format_to(ctx.out(), "{}", reflect::enum_name(t));
     }
