@@ -75,7 +75,7 @@ namespace fmtu
                 self.data[self.size++] = std::move(val);
             }
 
-            constexpr auto at(this const auto& self, size_t index) -> T
+            constexpr auto at(this const auto& self, size_t index) -> const T&
             {
                 if (index >= self.size) {
                     throw std::out_of_range("Index out of range!");
@@ -135,7 +135,7 @@ namespace fmtu
             {
                 auto it{ std::ranges::find_if(self, [&key](const auto& pair) { return pair.first == key; }) };
 
-                if (it != self.data.end()) {
+                if (it != self.end()) {
                     return it->second;
                 }
 
@@ -186,6 +186,20 @@ namespace fmtu
             return namespace_name<T>().starts_with("std::");
         }
 
+        // ---------- Helpers ----------
+
+        template<typename First, typename Second, size_t N>
+        consteval auto is_array_of_pairs_unique(std::array<std::pair<First, Second>, N> arr) -> bool
+        {
+            if constexpr (std::same_as<First, Second>) {
+                std::ranges::for_each(
+                  arr | std::views::filter([](const auto& val) { return val.second < val.first; }),
+                  [](auto& val) { std::swap(val.first, val.second); });
+            }
+            std::ranges::sort(arr);
+            return std::ranges::adjacent_find(arr) == arr.end();
+        }
+
         // ---------- General Concepts ----------
 
         template<typename T>
@@ -211,6 +225,50 @@ namespace fmtu
             requires !std::is_aggregate_v<std::remove_cvref_t<T>>;
             requires std::formattable<typename std::remove_cvref_t<T>::element_type, char>;
         };
+
+        // ---------- Enum Reflection ----------
+
+        template<ScopedEnum T>
+        consteval auto underlying_enumerators()
+        {
+            constexpr auto min{ reflect::enum_min(T{}) };
+            constexpr auto max{ reflect::enum_max(T{}) };
+            return reflect::detail::enum_cases<T, min, max>;
+        }
+
+        template<ScopedEnum T>
+        consteval auto num_enumerators() -> size_t
+        {
+            return underlying_enumerators<T>().size();
+        }
+
+        // clang-format off
+        template<ScopedEnum T>
+        consteval auto enumerators() -> std::array<T, num_enumerators<T>()>
+        {
+            std::array<T, num_enumerators<T>()> result{};
+            std::ranges::copy(underlying_enumerators<T>() |
+                                std::views::transform([](std::underlying_type_t<T> u) { 
+                                    return static_cast<T>(u); 
+                                }),
+                                result.begin());
+            return result;
+        }
+
+        template<ScopedEnum T, size_t N>
+        consteval auto enumerators_complement(const std::array<T, N>& arr) -> decltype(auto)
+        {
+            std::array<T, num_enumerators<T>() - arr.size()> result;
+            std::ranges::copy(enumerators<T>() | 
+                                std::views::filter([&arr](T e) { 
+                                    return std::ranges::none_of(arr, [e](T t) {
+                                        return e == t;
+                                    }); 
+                                }),
+                                result.begin());
+            return result;
+        }
+        // clang-format on
 
         // ---------- Adapter ----------
 
@@ -551,59 +609,7 @@ namespace fmtu
             }
         };
 
-        template<ScopedEnum T>
-        consteval auto underlying_enumerators()
-        {
-            constexpr auto min{ reflect::enum_min(T{}) };
-            constexpr auto max{ reflect::enum_max(T{}) };
-            return reflect::detail::enum_cases<T, min, max>;
-        }
-
-        template<ScopedEnum T>
-        consteval auto num_enumerators() -> size_t
-        {
-            return underlying_enumerators<T>().size();
-        }
-
-        // clang-format off
-        template<ScopedEnum T>
-        consteval auto enumerators() -> std::array<T, num_enumerators<T>()>
-        {
-            std::array<T, num_enumerators<T>()> result{};
-            std::ranges::copy(underlying_enumerators<T>() |
-                                std::views::transform([](std::underlying_type_t<T> u) { 
-                                    return static_cast<T>(u); 
-                                }),
-                                result.begin());
-            return result;
-        }
-
-        template<ScopedEnum T, size_t N>
-        consteval auto enumerators_complement(const std::array<T, N>& arr) -> decltype(auto)
-        {
-            std::array<T, num_enumerators<T>() - arr.size()> result;
-            std::ranges::copy(enumerators<T>() | 
-                                std::views::filter([&arr](T e) { 
-                                    return std::ranges::none_of(arr, [e](T t) {
-                                        return e == t;
-                                    }); 
-                                }),
-                                result.begin());
-            return result;
-        }
-        // clang-format on
-
-        template<typename First, typename Second, size_t N>
-        consteval auto is_array_of_pairs_unique(std::array<std::pair<First, Second>, N> arr) -> bool
-        {
-            if constexpr (std::same_as<First, Second>) {
-                std::ranges::for_each(
-                  arr | std::views::filter([](const auto& val) { return val.second < val.first; }),
-                  [](auto& val) { std::swap(val.first, val.second); });
-            }
-            std::ranges::sort(arr);
-            return std::ranges::adjacent_find(arr) == arr.end();
-        }
+        // ---------- Format Specs ----------
 
         enum class FmtSpecs : char
         {
@@ -614,42 +620,6 @@ namespace fmtu
             Toml = 't'
         };
         static constexpr auto NUM_FMT_SPECS{ num_enumerators<FmtSpecs>() };
-
-        struct FmtOpts
-        {
-            bool verbose;
-            bool pretty;
-            bool json;
-            bool yaml;
-            bool toml;
-
-            constexpr bool operator==(const FmtOpts&) const = default;
-            constexpr auto has_opt() const -> bool { return *this != FmtOpts{}; }
-            constexpr auto has_glaze() const -> bool;
-        };
-
-        static constexpr std::array GLAZE_FMT_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
-
-        // clang-format off
-        static constexpr FixedMap<FmtSpecs, bool FmtOpts::*, NUM_FMT_SPECS> FMT_SPECS_TO_OPTS{std::array{ 
-            std::make_pair(FmtSpecs::Verbose,   &FmtOpts::verbose),
-            std::make_pair(FmtSpecs::Pretty,    &FmtOpts::pretty),
-            std::make_pair(FmtSpecs::Json,      &FmtOpts::json),
-            std::make_pair(FmtSpecs::Yaml,      &FmtOpts::yaml),
-            std::make_pair(FmtSpecs::Toml,      &FmtOpts::toml) 
-        }};
-        // clang-format on
-
-        constexpr auto FmtOpts::has_glaze() const -> bool
-        {
-            return std::ranges::any_of(GLAZE_FMT_SPECS, [this](FmtSpecs spec) {
-                auto opt{ FMT_SPECS_TO_OPTS.at(spec) };
-                if (!opt.has_value()) {
-                    return false;
-                }
-                return (*this).*opt.value();
-            });
-        }
 
         static constexpr std::array COMPATIBLE_FMT_SPEC_PAIRS{
             std::make_pair(FmtSpecs::Verbose, FmtSpecs::Pretty),
@@ -689,40 +659,9 @@ namespace fmtu
 
         static constexpr auto FMT_INCOMPATIBEL_SPECS{ generate_incompatible_specs() };
 
-        template<FmtOpts AllowedOpts, typename Ctx>
-        constexpr auto parse_fmt_opts(Ctx& ctx, FmtOpts& active_opts) -> Ctx::iterator
-        {
-            auto it{ ctx.begin() };
-
-            std::vector<FmtSpecs> incompatibel_specs{};
-            while (it != ctx.end()) {
-                auto spec_char{ *it };
-                if (spec_char == '}') {
-                    return it;
-                }
-
-                auto spec{ static_cast<FmtSpecs>(spec_char) };
-                if (std::ranges::contains(incompatibel_specs, spec)) {
-                    throw std::format_error("Invalid format specifier");
-                }
-
-                auto opt{ FMT_SPECS_TO_OPTS.at(spec) };
-                if (!opt.has_value() || !(AllowedOpts.*opt.value())) {
-                    throw std::format_error("Invalid format specifier");
-                }
-                active_opts.*opt.value() = true;
-
-                if (auto inc_specs{ FMT_INCOMPATIBEL_SPECS.at(spec) }; inc_specs.has_value()) {
-                    incompatibel_specs.insert(incompatibel_specs.end(), inc_specs->begin(), inc_specs->end());
-                }
-
-                ++it;
-            }
-
-            return it;
-        }
-
 #ifdef FMTU_ENABLE_GLAZE
+        // ---------- Glaze Support ----------
+
         template<typename T>
         consteval bool is_type_glaze_serializable();
 
@@ -781,6 +720,77 @@ namespace fmtu
 
         template<typename T>
         concept GlazeSerializable = is_type_glaze_serializable<T>();
+
+        // ---------- Format Opts ----------
+
+        struct FmtOpts
+        {
+            bool verbose;
+            bool pretty;
+            bool json;
+            bool yaml;
+            bool toml;
+
+            constexpr bool operator==(const FmtOpts&) const = default;
+            constexpr auto has_opt() const -> bool { return *this != FmtOpts{}; }
+            constexpr auto has_glaze() const -> bool;
+        };
+
+        static constexpr std::array GLAZE_FMT_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
+
+        // clang-format off
+        static constexpr FixedMap<FmtSpecs, bool FmtOpts::*, NUM_FMT_SPECS> FMT_SPECS_TO_OPTS{std::array{ 
+            std::make_pair(FmtSpecs::Verbose,   &FmtOpts::verbose),
+            std::make_pair(FmtSpecs::Pretty,    &FmtOpts::pretty),
+            std::make_pair(FmtSpecs::Json,      &FmtOpts::json),
+            std::make_pair(FmtSpecs::Yaml,      &FmtOpts::yaml),
+            std::make_pair(FmtSpecs::Toml,      &FmtOpts::toml) 
+        }};
+        // clang-format on
+
+        constexpr auto FmtOpts::has_glaze() const -> bool
+        {
+            return std::ranges::any_of(GLAZE_FMT_SPECS, [this](FmtSpecs spec) {
+                auto opt{ FMT_SPECS_TO_OPTS.at(spec) };
+                if (!opt.has_value()) {
+                    return false;
+                }
+                return (*this).*opt.value();
+            });
+        }
+
+        template<FmtOpts AllowedOpts, typename Ctx>
+        constexpr auto parse_fmt_opts(Ctx& ctx, FmtOpts& active_opts) -> Ctx::iterator
+        {
+            auto it{ ctx.begin() };
+
+            std::vector<FmtSpecs> incompatibel_specs{};
+            while (it != ctx.end()) {
+                auto spec_char{ *it };
+                if (spec_char == '}') {
+                    return it;
+                }
+
+                auto spec{ static_cast<FmtSpecs>(spec_char) };
+                if (std::ranges::contains(incompatibel_specs, spec)) {
+                    throw std::format_error("Invalid format specifier");
+                }
+
+                auto opt{ FMT_SPECS_TO_OPTS.at(spec) };
+                if (!opt.has_value() || !(AllowedOpts.*opt.value())) {
+                    throw std::format_error("Invalid format specifier");
+                }
+                active_opts.*opt.value() = true;
+
+                if (auto inc_specs{ FMT_INCOMPATIBEL_SPECS.at(spec) }; inc_specs.has_value()) {
+                    incompatibel_specs.insert(incompatibel_specs.end(), inc_specs->begin(), inc_specs->end());
+                }
+
+                ++it;
+            }
+
+            return it;
+        }
 
         template<FormatInfo Info, typename Ctx, typename T>
         auto handle_class_opts(Ctx& ctx, const T& t, const FmtOpts& fmt_opts)
