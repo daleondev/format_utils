@@ -2,9 +2,170 @@
 
 #include <gtest/gtest.h>
 
-#include <format>
-#include <memory>
-#include <optional>
+int main(int argc, char* argv[])
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+
+// -----------------------------------------------------------------------------
+// Test Suite: Aggregates (Automatic Reflection)
+// -----------------------------------------------------------------------------
+
+struct SimpleAggregate
+{
+    int id;
+    double value;
+    bool active;
+};
+
+TEST(FormatTests, Aggregate_Compact)
+{
+    std::string result = std::format("{}", SimpleAggregate{ 42, 3.14, true });
+    std::string expected = "[ SimpleAggregate: { id: 42, value: 3.14, active: true } ]";
+    EXPECT_EQ(result, expected);
+}
+
+TEST(FormatTests, Aggregate_Pretty)
+{
+    std::string result = std::format("{:p}", SimpleAggregate{ 42, 3.14, true });
+    std::string expected = R"(SimpleAggregate: {
+  id: 42,
+  value: 3.14,
+  active: true
+})";
+    EXPECT_EQ(result, expected);
+}
+
+struct NestedAggregate
+{
+    std::string name;
+    SimpleAggregate simple;
+};
+
+TEST(FormatTests, Aggregate_Nested)
+{
+    std::string result = std::format("{}", NestedAggregate{ "Parent", { 1, 1.0, false } });
+    std::string expected = "[ NestedAggregate: { name: Parent, simple: [ SimpleAggregate: { id: 1, value: 1, "
+                           "active: false } ] } ]";
+    EXPECT_EQ(result, expected);
+}
+
+#ifndef FMTU_ENABLE_GLAZE
+struct AggregateWithNonFormattableMember
+{
+    int64_t id;
+    std::mutex mutex;
+};
+
+TEST(FormatTests, Aggregate_NonFormattableMember)
+{
+    std::string result = std::format("{}", AggregateWithNonFormattableMember{ 12, {} });
+    std::string expected = "[ AggregateWithNonFormattableMember: { id: 12, mutex: - } ]";
+    EXPECT_EQ(result, expected);
+}
+#endif
+
+// -----------------------------------------------------------------------------
+// Test Suite: Adapters (Encapsulated Classes)
+// -----------------------------------------------------------------------------
+
+class ClassWithAdapter
+{
+  public:
+    ClassWithAdapter(int id, std::string name)
+      : m_id(id)
+      , m_name(std::move(name))
+    {
+    }
+
+    int getId() const { return m_id; }
+    const std::string& getName() const { return m_name; }
+
+  private:
+    int m_id;
+    std::string m_name;
+};
+
+template<>
+struct fmtu::Adapter<ClassWithAdapter>
+{
+    using Fields = std::tuple<fmtu::Field<"id", &ClassWithAdapter::getId>,
+                              fmtu::Field<"name", &ClassWithAdapter::getName>>;
+};
+
+TEST(FormatTests, Adapter_Compact)
+{
+    std::string result = std::format("{}", ClassWithAdapter{ 100, "TestObj" });
+    std::string expected = "[ ClassWithAdapter: { id: 100, name: TestObj } ]";
+    EXPECT_EQ(result, expected);
+}
+
+TEST(FormatTests, Adapter_Pretty)
+{
+    std::string result = std::format("{:p}", ClassWithAdapter{ 100, "TestObj" });
+    std::string expected = R"(ClassWithAdapter: {
+  id: 100,
+  name: TestObj
+})";
+    EXPECT_EQ(result, expected);
+}
+
+// -----------------------------------------------------------------------------
+// Test Suite: Enums
+// -----------------------------------------------------------------------------
+
+enum class TestEnum
+{
+    ValueA,
+    ValueB,
+    ValueC
+};
+
+TEST(FormatTests, Enum_Default)
+{
+    std::string result = std::format("{}", TestEnum::ValueB);
+    std::string expected = "ValueB";
+    EXPECT_EQ(result, expected);
+}
+
+TEST(FormatTests, Enum_Verbose)
+{
+    std::string result = std::format("{:v}", TestEnum::ValueC);
+    std::string expected = "TestEnum::ValueC";
+    EXPECT_EQ(result, expected);
+}
+
+// -----------------------------------------------------------------------------
+// Test Suite: Optionals
+// -----------------------------------------------------------------------------
+
+TEST(FormatTests, Optional_HasValue)
+{
+    std::optional<int> opt = 123;
+    std::string result = std::format("{}", opt);
+    std::string expected = "[ 123 ]";
+    EXPECT_EQ(result, expected);
+}
+
+TEST(FormatTests, Optional_Empty)
+{
+    std::optional<int> opt = std::nullopt;
+    std::string result = std::format("{}", opt);
+    std::string expected = "[ null ]";
+    EXPECT_EQ(result, expected);
+}
+
+TEST(FormatTests, Optional_Complex)
+{
+    std::optional<SimpleAggregate> opt = SimpleAggregate{ 1, 2.2, false };
+    std::string result = std::format("{}", opt);
+    std::string expected = "[ [ SimpleAggregate: { id: 1, value: 2.2, active: false } ] ]";
+    EXPECT_EQ(result, expected);
+}
+// -----------------------------------------------------------------------------
+// Test Suite: Pointers
+// -----------------------------------------------------------------------------
 
 static auto split_str(const std::string& ptr_str, char delimiter) -> std::vector<std::string>
 {
@@ -12,6 +173,19 @@ static auto split_str(const std::string& ptr_str, char delimiter) -> std::vector
     return split_view |
            std::views::transform([](auto&& str) { return std::string(str.begin(), str.end()); }) |
            std::ranges::to<std::vector>();
+}
+
+static auto is_valid_hex(std::string_view s) -> bool
+{
+    if (s.empty())
+        return false;
+
+    if (!s.starts_with("0x") && !s.starts_with("0X"))
+        return false;
+
+    s.remove_prefix(2);
+
+    return std::ranges::all_of(s, [](unsigned char c) { return std::isxdigit(c); });
 }
 
 struct PtrData
@@ -38,164 +212,6 @@ static auto parse_ptr_str(const std::string& ptr_str) -> std::optional<PtrData>
     return ptr_data;
 }
 
-struct SimpleAggregate
-{
-    int id;
-    double value;
-    bool active;
-};
-
-struct NestedAggregate
-{
-    std::string name;
-    SimpleAggregate simple;
-};
-
-class ClassWithAdapter
-{
-  public:
-    ClassWithAdapter(int id, std::string name)
-      : m_id(id)
-      , m_name(std::move(name))
-    {
-    }
-
-    int getId() const { return m_id; }
-    const std::string& getName() const { return m_name; }
-
-  private:
-    int m_id;
-    std::string m_name;
-};
-
-template<>
-struct fmtu::Adapter<ClassWithAdapter>
-{
-    using Fields = std::tuple<fmtu::Field<"id", &ClassWithAdapter::getId>,
-                              fmtu::Field<"name", &ClassWithAdapter::getName>>;
-};
-
-enum class TestEnum
-{
-    ValueA,
-    ValueB,
-    ValueC
-};
-
-TEST(FormatTests, Aggregate_Compact)
-{
-    SimpleAggregate agg{ 42, 3.14, true };
-    // Expected format: [ SimpleAggregate: {{ id: 42, value: 3.14, active: true }} ]
-    std::string result = std::format("{}", agg);
-
-    EXPECT_TRUE(result.starts_with("[ SimpleAggregate: {{ "));
-    EXPECT_TRUE(result.ends_with(" }} ]"));
-    EXPECT_NE(result.find("id: 42"), std::string::npos);
-    EXPECT_NE(result.find("value: 3.14"), std::string::npos);
-    EXPECT_NE(result.find("active: true"), std::string::npos);
-}
-
-TEST(FormatTests, Aggregate_Pretty)
-{
-    SimpleAggregate agg{ 42, 3.14, true };
-    // Pretty format uses multi-line indentation
-    std::string result = std::format("{:p}", agg);
-
-    EXPECT_TRUE(result.starts_with("SimpleAggregate: {{\n"));
-    EXPECT_NE(result.find("  id: 42"), std::string::npos);
-    EXPECT_NE(result.find("  value: 3.14"), std::string::npos);
-    EXPECT_NE(result.find("  active: true"), std::string::npos);
-    EXPECT_TRUE(result.ends_with("}}"));
-}
-
-TEST(FormatTests, Aggregate_Nested)
-{
-    NestedAggregate nested{ "Parent", { 1, 1.0, false } };
-    std::string result = std::format("{}", nested);
-
-    // Verify nested structure inclusion
-    EXPECT_NE(result.find("name: Parent"), std::string::npos);
-    EXPECT_NE(result.find("simple: [ SimpleAggregate: {{"), std::string::npos);
-}
-
-// -----------------------------------------------------------------------------
-// Test Suite: Adapters (Encapsulated Classes)
-// -----------------------------------------------------------------------------
-
-TEST(FormatTests, Adapter_Compact)
-{
-    ClassWithAdapter obj(100, "TestObj");
-    std::string result = std::format("{}", obj);
-
-    // Expected: [ ClassWithAdapter: {{ id: 100, name: TestObj }} ]
-    EXPECT_TRUE(result.starts_with("[ ClassWithAdapter: {{ "));
-    EXPECT_NE(result.find("id: 100"), std::string::npos);
-    EXPECT_NE(result.find("name: TestObj"), std::string::npos);
-    EXPECT_TRUE(result.ends_with(" }} ]"));
-}
-
-TEST(FormatTests, Adapter_Pretty)
-{
-    ClassWithAdapter obj(100, "TestObj");
-    std::string result = std::format("{:p}", obj);
-
-    EXPECT_TRUE(result.starts_with("ClassWithAdapter: {{\n"));
-    EXPECT_NE(result.find("  id: 100"), std::string::npos);
-    EXPECT_NE(result.find("  name: TestObj"), std::string::npos);
-    EXPECT_TRUE(result.ends_with("}}"));
-}
-
-// -----------------------------------------------------------------------------
-// Test Suite: Enums
-// -----------------------------------------------------------------------------
-
-TEST(FormatTests, Enum_Default)
-{
-    TestEnum e = TestEnum::ValueB;
-    // Default: just the name "ValueB"
-    EXPECT_EQ(std::format("{}", e), "ValueB");
-}
-
-TEST(FormatTests, Enum_Verbose)
-{
-    TestEnum e = TestEnum::ValueC;
-    // Verbose: "TestEnum::ValueC"
-    EXPECT_EQ(std::format("{:v}", e), "TestEnum::ValueC");
-}
-
-// -----------------------------------------------------------------------------
-// Test Suite: Optionals
-// -----------------------------------------------------------------------------
-
-TEST(FormatTests, Optional_HasValue)
-{
-    std::optional<int> opt = 123;
-    std::string result = std::format("{}", opt);
-    // Expected: [ 123 ]
-    EXPECT_EQ(result, "[ 123 ]");
-}
-
-TEST(FormatTests, Optional_Empty)
-{
-    std::optional<int> opt = std::nullopt;
-    std::string result = std::format("{}", opt);
-    // Expected: [ null ]
-    EXPECT_EQ(result, "[ null ]");
-}
-
-TEST(FormatTests, Optional_Complex)
-{
-    std::optional<SimpleAggregate> opt = SimpleAggregate{ 1, 2.0, false };
-    std::string result = std::format("{}", opt);
-
-    EXPECT_TRUE(result.starts_with("[ [ SimpleAggregate: {{"));
-    EXPECT_TRUE(result.ends_with("}} ] ]"));
-}
-
-// -----------------------------------------------------------------------------
-// Test Suite: Pointers
-// -----------------------------------------------------------------------------
-
 TEST(FormatTests, Pointer_Raw)
 {
     int value = 99;
@@ -204,7 +220,9 @@ TEST(FormatTests, Pointer_Raw)
 
     auto parsed = parse_ptr_str(result);
     ASSERT_TRUE(parsed.has_value());
-    EXPECT_TRUE(parsed->ptr.starts_with('(')); // Address in hex
+    EXPECT_TRUE(parsed.value().ptr.starts_with('('));
+    EXPECT_TRUE(parsed.value().ptr.ends_with(')'));
+    EXPECT_TRUE(is_valid_hex(parsed.value().ptr.substr(1, parsed.value().ptr.size() - 2)));
     EXPECT_EQ(parsed->data, "99");
 }
 
@@ -213,20 +231,20 @@ TEST(FormatTests, Pointer_Smart)
     auto ptr = std::make_unique<int>(55);
     std::string result = std::format("{}", ptr);
 
-    // Smart pointer formatting delegates to the raw pointer formatter logic
     auto parsed = parse_ptr_str(result);
     ASSERT_TRUE(parsed.has_value());
+    EXPECT_TRUE(parsed.value().ptr.starts_with('('));
+    EXPECT_TRUE(parsed.value().ptr.ends_with(')'));
+    EXPECT_TRUE(is_valid_hex(parsed.value().ptr.substr(1, parsed.value().ptr.size() - 2)));
     EXPECT_EQ(parsed->data, "55");
 }
 
 TEST(FormatTests, Pointer_Null)
 {
     int* ptr = nullptr;
-    // Implementation defines null pointer format, usually something like "0x0" or similar for void*,
-    // but our formatter specializes ValuePtr to show "[ (0) -> null ]" pattern if nullptr.
-
     std::string result = std::format("{}", ptr);
-    EXPECT_NE(result.find("null"), std::string::npos);
+    std::string expected = "[ (0x0) -> null ]";
+    EXPECT_EQ(result, expected);
 }
 
 // -----------------------------------------------------------------------------
@@ -236,43 +254,30 @@ TEST(FormatTests, Pointer_Null)
 #ifdef FMTU_ENABLE_JSON
 TEST(FormatTests, JSON_Compact)
 {
-    SimpleAggregate agg{ 10, 20.5, true };
-    // {:j} -> Compact JSON
-    std::string result = std::format("{:j}", agg);
-
-    // Simple checks for JSON structure
-    EXPECT_NE(result.find("\"id\":10"), std::string::npos);
-    EXPECT_NE(result.find("\"value\":20.5"), std::string::npos);
-    EXPECT_NE(result.find("\"active\":true"), std::string::npos);
+    std::string result = std::format("{:j}", SimpleAggregate{ 10, 20.5, true });
+    std::string expected = R"({"id":10,"value":20.5,"active":true})";
+    EXPECT_EQ(result, expected);
 }
 
 TEST(FormatTests, JSON_Pretty)
 {
-    SimpleAggregate agg{ 10, 20.5, true };
-    // {:pj} -> Pretty JSON
-    std::string result = std::format("{:pj}", agg);
-
-    // Check for newlines/indentation which implies prettified output
-    EXPECT_NE(result.find("\n"), std::string::npos);
-    EXPECT_NE(result.find("  \"id\": 10"), std::string::npos); // Glaze pretty print default indent
+    std::string result = std::format("{:pj}", SimpleAggregate{ 10, 20.5, true });
+    std::string expected = R"({
+   "id": 10,
+   "value": 20.5,
+   "active": true
+})";
+    EXPECT_EQ(result, expected);
 }
 #endif
 
 #ifdef FMTU_ENABLE_TOML
 TEST(FormatTests, TOML_Basic)
 {
-    SimpleAggregate agg{ 10, 20.5, true };
-    // {:t} -> TOML
-    std::string result = std::format("{:t}", agg);
-
-    EXPECT_NE(result.find("id = 10"), std::string::npos);
-    EXPECT_NE(result.find("value = 20.5"), std::string::npos);
-    EXPECT_NE(result.find("active = true"), std::string::npos);
+    std::string result = std::format("{:t}", SimpleAggregate{ 10, 20.5, true });
+    std::string expected = R"(id = 10
+value = 20.5
+active = true)";
+    EXPECT_EQ(result, expected);
 }
 #endif
-
-int main(int argc, char* argv[])
-{
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
