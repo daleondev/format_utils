@@ -96,16 +96,16 @@ int main()
     std::println("--- 3. Serialization (Glaze Integration) ---");
 
     if constexpr (fmtu::IS_JSON_ENABLED) {
-        std::println("Compact JSON: {:j}", cfg);
-        std::println("Pretty JSON: \n{:pj}", cfg);
+        std::println("Compact JSON: {:j}", user);
+        std::println("Pretty JSON: \n{:pj}", user);
     }
 
     if constexpr (fmtu::IS_YAML_ENABLED) {
-        std::println("YAML: \n{:y}", cfg);
+        std::println("YAML: \n{:y}", user);
     }
 
     if constexpr (fmtu::IS_TOML_ENABLED) {
-        std::println("TOML: \n{:t}", cfg);
+        std::println("TOML: \n{:t}", user);
     }
 
     // -------------------------------------------------

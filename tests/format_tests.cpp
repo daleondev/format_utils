@@ -261,12 +261,20 @@ TEST(FormatTests, JSON_Compact)
 
 TEST(FormatTests, JSON_Pretty)
 {
-    std::string result = std::format("{:pj}", SimpleAggregate{ 10, 20.5, true });
+    std::string result = std::format("{:pj}", ClassWithAdapter{ 100, "TestObj" });
     std::string expected = R"({
-   "id": 10,
-   "value": 20.5,
-   "active": true
+   "id": 100,
+   "name": "TestObj"
 })";
+    EXPECT_EQ(result, expected);
+}
+#endif
+
+#ifdef FMTU_ENABLE_YAML
+TEST(FormatTests, YAML_Basic)
+{
+    std::string result = std::format("{:y}", ClassWithAdapter{ 100, "TestObj" });
+    std::string expected = "id:\n100name:\nTestObj";
     EXPECT_EQ(result, expected);
 }
 #endif
@@ -274,10 +282,9 @@ TEST(FormatTests, JSON_Pretty)
 #ifdef FMTU_ENABLE_TOML
 TEST(FormatTests, TOML_Basic)
 {
-    std::string result = std::format("{:t}", SimpleAggregate{ 10, 20.5, true });
-    std::string expected = R"(id = 10
-value = 20.5
-active = true)";
+    std::string result = std::format("{:t}", ClassWithAdapter{ 100, "TestObj" });
+    std::string expected = R"(id = 100
+name = "TestObj")";
     EXPECT_EQ(result, expected);
 }
 #endif

@@ -669,29 +669,36 @@ namespace fmtu
         static constexpr std::array GLAZE_FMT_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
 
 #ifdef FMTU_ENABLE_GLAZE
-        template<typename T>
+        enum class GlazeFormat : uint32_t
+        {
+            Json = glz::JSON,
+            Yaml = glz::YAML,
+            Toml = glz::TOML
+        };
+
+        template<typename T, GlazeFormat Fmt>
         consteval bool is_type_glaze_serializable();
 
-        template<FormatInfo Info>
+        template<FormatInfo Info, GlazeFormat Fmt>
         consteval bool is_info_glaze_serializable()
         {
             using MemberTypes = typename Info::MemberTypes;
             return []<size_t... Is>(std::index_sequence<Is...>) {
-                return (is_type_glaze_serializable<std::tuple_element_t<Is, MemberTypes>>() && ...);
+                return (is_type_glaze_serializable<std::tuple_element_t<Is, MemberTypes>, Fmt>() && ...);
             }(std::make_index_sequence<Info::numMembers()>{});
         }
 
-        template<typename T>
+        template<typename T, GlazeFormat Fmt>
         consteval bool is_type_glaze_serializable()
         {
             if constexpr (HasAdapter<T>) {
-                return is_info_glaze_serializable<AdapterInfo<T>>();
+                return is_info_glaze_serializable<AdapterInfo<T>, Fmt>();
             }
             else if constexpr (Reflectable<T>) {
-                return is_info_glaze_serializable<ReflectableInfo<T>>();
+                return is_info_glaze_serializable<ReflectableInfo<T>, Fmt>();
             }
             else {
-                return glz::write_supported<T, glz::JSON>;
+                return glz::write_supported<T, std::to_underlying(Fmt)>;
             }
         }
 
@@ -721,15 +728,22 @@ namespace fmtu
         template<typename T>
         concept HasGlazeMeta = requires { glz::meta<std::remove_cvref_t<T>>::value; };
 #else
-        template<typename T>
+        enum class GlazeFormat : uint32_t
+        {
+            Json,
+            Yaml,
+            Toml
+        };
+
+        template<typename T, GlazeFormat Fmt>
         consteval bool is_type_glaze_serializable()
         {
             return false;
         }
 #endif
 
-        template<typename T>
-        concept GlazeSerializable = is_type_glaze_serializable<T>();
+        template<typename T, GlazeFormat Fmt>
+        concept GlazeSerializable = is_type_glaze_serializable<T, Fmt>();
 
         // ---------- Format Opts ----------
 
@@ -743,7 +757,6 @@ namespace fmtu
 
             constexpr bool operator==(const FmtOpts&) const = default;
             constexpr auto has_opt() const -> bool { return *this != FmtOpts{}; }
-            constexpr auto has_glaze() const -> bool;
         };
 
 #ifndef __INTELLISENSE__
@@ -756,17 +769,6 @@ namespace fmtu
             std::make_pair(FmtSpecs::Toml,      &FmtOpts::toml) 
         }};
         // clang-format on
-
-        constexpr auto FmtOpts::has_glaze() const -> bool
-        {
-            return std::ranges::any_of(GLAZE_FMT_SPECS, [this](FmtSpecs spec) {
-                auto opt{ FMT_SPECS_TO_OPTS.at(spec) };
-                if (!opt.has_value()) {
-                    return false;
-                }
-                return (*this).*opt.value();
-            });
-        }
 #endif
 
         template<FmtOpts AllowedOpts, typename Ctx>
@@ -806,30 +808,44 @@ namespace fmtu
         auto handle_class_opts(Ctx& ctx, const T& t, const FmtOpts& fmt_opts)
           -> std::optional<typename Ctx::iterator>
         {
-            if constexpr (GlazeSerializable<T>) {
 #ifdef FMTU_ENABLE_JSON
-                if (fmt_opts.json) {
+            if (fmt_opts.json) {
+                if constexpr (GlazeSerializable<T, GlazeFormat::Json>) {
+
                     auto json_str{ (fmt_opts.pretty ? glz::write<glz::opts{ .prettify = true }>(t)
                                                     : glz::write_json(t))
                                      .value_or("JSON Error") };
                     return std::format_to(ctx.out(), "{}", json_str);
                 }
+                else {
+                    throw std::format_error("Failed to format json");
+                }
+            }
 #endif
 #ifdef FMTU_ENABLE_YAML
-                if constexpr (HasGlazeMeta<T>) {
-                    if (fmt_opts.yaml) {
-                        auto yaml_str{ glz::write_yaml(t).value_or("YAML Error") };
-                        return std::format_to(ctx.out(), "{}", yaml_str);
-                    }
+            if (fmt_opts.yaml) {
+                if constexpr (GlazeSerializable<T, GlazeFormat::Yaml> && HasGlazeMeta<T>) {
+
+                    auto yaml_str{ glz::write_yaml(t).value_or("YAML Error") };
+                    return std::format_to(ctx.out(), "{}", yaml_str);
                 }
+                else {
+                    throw std::format_error("Failed to format yaml");
+                }
+            }
 #endif
 #ifdef FMTU_ENABLE_TOML
-                if (fmt_opts.toml) {
+            if (fmt_opts.toml) {
+                if constexpr (GlazeSerializable<T, GlazeFormat::Toml>) {
+
                     auto toml_str{ glz::write_toml(t).value_or("TOML Error") };
                     return std::format_to(ctx.out(), "{}", toml_str);
                 }
-#endif
+                else {
+                    throw std::format_error("Failed to format toml");
+                }
             }
+#endif
             if (fmt_opts.pretty) {
                 auto args{ fmtu::detail::make_flat_args_tuple(t) };
                 static constexpr auto fmt{ fmtu::detail::class_pretty_format<Info>() };
@@ -871,15 +887,15 @@ struct std::formatter<T>
     {
         auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmt_opts) };
         if constexpr (fmtu::IS_GLAZE_ENABLED) {
-            if (fmt_opts.has_glaze()) {
-                static_assert(fmtu::detail::GlazeSerializable<T>,
-                              "Formatting not possible: Type is not glaze serializable");
-                if constexpr (fmtu::IS_YAML_ENABLED) {
-                    if (fmt_opts.yaml) {
-                        static_assert(fmtu::detail::HasGlazeMeta<T>,
-                                      "Formatting not possible: Type has no glaze meta");
-                    }
-                }
+            if (fmt_opts.json && !fmtu::detail::GlazeSerializable<T, fmtu::detail::GlazeFormat::Json>) {
+                throw std::format_error("Formatting not possible: Json");
+            }
+            if (fmt_opts.yaml && (!fmtu::detail::GlazeSerializable<T, fmtu::detail::GlazeFormat::Yaml> ||
+                                  !fmtu::detail::HasGlazeMeta<T>)) {
+                throw std::format_error("Formatting not possible: Yaml");
+            }
+            if (fmt_opts.toml && !fmtu::detail::GlazeSerializable<T, fmtu::detail::GlazeFormat::Toml>) {
+                throw std::format_error("Formatting not possible: Toml");
             }
         }
         return it;
@@ -934,15 +950,15 @@ struct std::formatter<T>
     {
         auto it{ fmtu::detail::parse_fmt_opts<ALLOWED_FMT_OPTS>(ctx, fmt_opts) };
         if constexpr (fmtu::IS_GLAZE_ENABLED) {
-            if (fmt_opts.has_glaze()) {
-                static_assert(fmtu::detail::GlazeSerializable<T>,
-                              "Formatting not possible: Type is not glaze serializable");
-                if constexpr (fmtu::IS_YAML_ENABLED) {
-                    if (fmt_opts.yaml) {
-                        static_assert(fmtu::detail::HasGlazeMeta<T>,
-                                      "Formatting not possible: Type has no glaze meta");
-                    }
-                }
+            if (fmt_opts.json && !fmtu::detail::GlazeSerializable<T, fmtu::detail::GlazeFormat::Json>) {
+                throw std::format_error("Formatting not possible: Json");
+            }
+            if (fmt_opts.yaml && (!fmtu::detail::GlazeSerializable<T, fmtu::detail::GlazeFormat::Yaml> ||
+                                  !fmtu::detail::HasGlazeMeta<T>)) {
+                throw std::format_error("Formatting not possible: Yaml");
+            }
+            if (fmt_opts.toml && !fmtu::detail::GlazeSerializable<T, fmtu::detail::GlazeFormat::Toml>) {
+                throw std::format_error("Formatting not possible: Toml");
             }
         }
         return it;
