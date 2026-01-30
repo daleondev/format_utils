@@ -39,7 +39,6 @@ class User
     {
     }
 
-    // Getters for the adapter
     const std::string& getName() const { return m_name; }
     const std::string& getRole() const { return m_role; }
     int getLevel() const { return m_level; }
@@ -48,11 +47,9 @@ class User
     std::string m_name;
     std::string m_role;
     int m_level;
-    // Private mutex (not formatted)
     std::mutex m_mtx;
 };
 
-// Register the adapter
 template<>
 struct fmtu::Adapter<User>
 {
@@ -84,9 +81,7 @@ int main()
     std::println("--- 1. Automatic Reflection (Structs) ---");
     Config cfg{ 101, "SimulationConfig", { 0.5, 1.2, 3.14 }, { 1920, 1080 }, true };
 
-    // Default format (Compact)
     std::println("Default: {}", cfg);
-    // Pretty format (Indented)
     std::println("Pretty: \n{:p}", cfg);
     std::println("");
 
@@ -105,24 +100,17 @@ int main()
     // -------------------------------------------------
     std::println("--- 3. Serialization (Glaze Integration) ---");
 
-    // JSON
     if constexpr (fmtu::IS_JSON_ENABLED) {
         std::println("Compact JSON: {:j}", cfg);
         std::println("Pretty JSON: \n{:pj}", cfg);
     }
 
-    // YAML
     if constexpr (fmtu::IS_YAML_ENABLED) {
         std::println("YAML: \n{:y}", cfg);
     }
 
-    // TOML
     if constexpr (fmtu::IS_TOML_ENABLED) {
         std::println("TOML: \n{:t}", cfg);
-    }
-
-    if constexpr (fmtu::IS_GLAZE_ENABLED) {
-        std::println("");
     }
 
     // -------------------------------------------------
