@@ -94,7 +94,8 @@ namespace fmtu
                 requires std::is_lvalue_reference_v<Self>
             constexpr auto end(this Self&& self)
             {
-                return std::forward<Self>(self).data.begin() + self.size;
+                auto size{ self.size };
+                return std::forward<Self>(self).data.begin() + size;
             }
         };
 
@@ -153,7 +154,8 @@ namespace fmtu
                 requires std::is_lvalue_reference_v<Self>
             constexpr auto end(this Self&& self)
             {
-                return std::forward<Self>(self).data.begin() + self.size;
+                auto size{ self.size };
+                return std::forward<Self>(self).data.begin() + size;
             }
         };
 
@@ -736,7 +738,7 @@ namespace fmtu
             bool toml;
 
             constexpr bool operator==(const FmtOpts&) const = default;
-            constexpr auto hasOpt() const -> bool { return *this != FmtOpts{}; }
+            constexpr operator bool(this const auto& self) { return self != FmtOpts{}; }
         };
 
         // clang-format off
@@ -882,7 +884,7 @@ struct std::formatter<T>
     template<typename Ctx>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
-        if (fmt_opts.hasOpt()) {
+        if (fmt_opts) {
             if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmt_opts) }; it.has_value()) {
                 return it.value();
             }
@@ -945,7 +947,7 @@ struct std::formatter<T>
     template<typename Ctx>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
-        if (fmt_opts.hasOpt()) {
+        if (fmt_opts) {
             if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmt_opts) }; it.has_value()) {
                 return it.value();
             }

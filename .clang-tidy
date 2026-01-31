@@ -1,6 +1,7 @@
 ---
 Checks: >
   readability-*,
+  bugprone-*,
   -readability-identifier-length,
   -readability-braces-around-statements,
   -readability-implicit-bool-conversion
