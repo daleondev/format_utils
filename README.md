@@ -272,7 +272,7 @@ int main()
 | `clang-debug-mingw` / `clang-release-mingw` | Build using Clang for MinGW | `clang++` (MinGW target) |
 | `tidy-linux` / `tidy-mingw` | Static analysis with Clang-Tidy | `clang-tidy` |
 
-### Build the library, samples, and tests:
+### Build the sample, and tests:
 
 ```bash
 # cmake --preset <compiler>-<build_type>-<platform>
@@ -288,7 +288,7 @@ cmake --build --preset clang-release-linux
 ./build/clang-release-linux/samples/format_sample
 ```
 
-### Run tests:
+### Run the tests:
 ```bash
 # ctest --preset <compiler>-<build_type>-<platform>
 ctest --preset clang-release-linux
