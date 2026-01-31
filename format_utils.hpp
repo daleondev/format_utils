@@ -206,7 +206,7 @@ namespace fmtu
         // type name, causing the original extraction logic to fail for classes.
         // clang-format on
         template<class T>
-        constexpr auto type_name() noexcept -> std::string_view
+        constexpr auto type_name() -> std::string_view
         {
             using namespace std::literals;
             using type_name_info =
