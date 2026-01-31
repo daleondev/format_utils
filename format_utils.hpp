@@ -10,7 +10,11 @@
 #include <glaze/toml.hpp>
 #endif
 
+#pragma push_macro("NTEST")
+#undef NTEST
+#define NTEST
 #include <reflect>
+#pragma pop_macro("NTEST")
 
 #include <algorithm>
 #include <array>
@@ -166,31 +170,6 @@ namespace fmtu
         // ---------- Namespace Std ----------
 
         // clang-format off
-        template<typename T>
-        consteval auto robust_type_name() -> std::string_view
-        {
-            using type_name_info = reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
-            constexpr std::string_view function_name{
-                reflect::detail::function_name<std::remove_pointer_t<std::remove_cvref_t<T>>>()
-            };
-            constexpr std::string_view qualified_type_name{ 
-                function_name.substr(type_name_info::begin, function_name.find(type_name_info::end) - type_name_info::begin) 
-            };
-            constexpr std::string_view tmp_type_name{ 
-                qualified_type_name.substr(0, qualified_type_name.find_first_of('<', 1)) 
-            };
-            constexpr std::string_view type_name{
-                tmp_type_name.substr(tmp_type_name.find_last_of("::")+1)
-            };
-            static_assert(std::size(type_name) > 0u);
-            return type_name;
-// #ifdef _MSC_VER
-//             if (name.starts_with("struct ")) name.remove_prefix(7);
-//             else if (name.starts_with("class ")) name.remove_prefix(6);
-//             else if (name.starts_with("enum ")) name.remove_prefix(5);
-// #endif
-        }
-
         template<typename T>
         consteval auto namespace_name() -> std::string_view
         {
@@ -394,7 +373,7 @@ namespace fmtu
         struct AdapterInfo
         {
             using Type = std::remove_cvref_t<T>;
-            static constexpr std::string_view NAME{ robust_type_name<T>() };
+            static constexpr std::string_view NAME{ reflect::type_name<T>() };
             using MemberTypes = adapter_types_t<T>;
             static constexpr std::array MEMBER_NAMES{ adapter_names<T>() };
             static consteval auto numMembers() -> size_t { return MEMBER_NAMES.size(); };
@@ -432,7 +411,7 @@ namespace fmtu
         struct ReflectableInfo
         {
             using Type = std::remove_cvref_t<T>;
-            static constexpr std::string_view NAME{ robust_type_name<T>() };
+            static constexpr std::string_view NAME{ reflect::type_name<T>() };
             using MemberTypes = reflect_types_t<T>;
             static constexpr std::array MEMBER_NAMES{ reflect_names<T>() };
             static consteval auto numMembers() -> size_t { return MEMBER_NAMES.size(); };
@@ -1013,8 +992,7 @@ struct std::formatter<T>
     auto format(T t, Ctx& ctx) const -> Ctx::iterator
     {
         if (fmt_opts.verbose) {
-            return std::format_to(
-              ctx.out(), "{}::{}", fmtu::detail::robust_type_name<T>(), reflect::enum_name(t));
+            return std::format_to(ctx.out(), "{}::{}", reflect::type_name<T>(), reflect::enum_name(t));
         }
         return std::format_to(ctx.out(), "{}", reflect::enum_name(t));
     }

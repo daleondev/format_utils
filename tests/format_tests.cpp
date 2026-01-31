@@ -21,6 +21,13 @@ struct SimpleAggregate
     bool active;
 };
 
+TEST(FormatTests, Aggregate_TypeNameReflection)
+{
+    std::string result = std::string(reflect::type_name<SimpleAggregate>());
+    std::string expected = "SimpleAggregate";
+    EXPECT_EQ(result, expected);
+}
+
 TEST(FormatTests, Aggregate_Compact)
 {
     std::string result = std::format("{}", SimpleAggregate{ 42, 3.14, true });
@@ -97,6 +104,13 @@ struct fmtu::Adapter<ClassWithAdapter>
     using Fields = std::tuple<fmtu::Field<"id", &ClassWithAdapter::getId>,
                               fmtu::Field<"name", &ClassWithAdapter::getName>>;
 };
+
+TEST(FormatTests, Class_TypeNameReflection)
+{
+    std::string result = std::string(reflect::type_name<ClassWithAdapter>());
+    std::string expected = "ClassWithAdapter";
+    EXPECT_EQ(result, expected);
+}
 
 TEST(FormatTests, Adapter_Compact)
 {
