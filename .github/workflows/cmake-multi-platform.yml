@@ -71,7 +71,6 @@ jobs:
 
     # --- Configure & Build ---
     - name: Configure CMake
-
       run: cmake --preset ${{ matrix.preset }}
 
     - name: Build with Glaze
