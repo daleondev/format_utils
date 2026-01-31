@@ -53,8 +53,7 @@
             "description": "Build with debug symbols using Clang",
             "inherits": "debug",
             "cacheVariables": {
-                "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32"
+                "CMAKE_CXX_COMPILER": "clang++"
             }
         },
         {
@@ -63,7 +62,24 @@
             "description": "Build for release using Clang",
             "inherits": "release",
             "cacheVariables": {
-                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "clang-debug-mingw",
+            "displayName": "Clang Debug (MinGW)",
+            "description": "Build with debug symbols using Clang (MinGW target)",
+            "inherits": "clang-debug",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32"
+            }
+        },
+        {
+            "name": "clang-release-mingw",
+            "displayName": "Clang Release (MinGW)",
+            "description": "Build for release using Clang (MinGW target)",
+            "inherits": "clang-release",
+            "cacheVariables": {
                 "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32"
             }
         },
@@ -105,6 +121,14 @@
             "configurePreset": "clang-release"
         },
         {
+            "name": "clang-debug-mingw",
+            "configurePreset": "clang-debug-mingw"
+        },
+        {
+            "name": "clang-release-mingw",
+            "configurePreset": "clang-release-mingw"
+        },
+        {
             "name": "tidy",
             "configurePreset": "tidy"
         }
@@ -133,6 +157,14 @@
         {
             "name": "clang-release",
             "configurePreset": "clang-release"
+        },
+        {
+            "name": "clang-debug-mingw",
+            "configurePreset": "clang-debug-mingw"
+        },
+        {
+            "name": "clang-release-mingw",
+            "configurePreset": "clang-release-mingw"
         }
     ]
 }
