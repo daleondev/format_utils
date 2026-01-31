@@ -1,6 +1,6 @@
 # format_utils
 
-[![Multi-Platform CI (Presets)](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml)
+[![Multi-Platform CI/CD](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml)
 
 **format_utils** is a modern C++23 header-only library that extends `std::format` with powerful capabilities for automatic reflection, serialization, and formatted output of user-defined types. It seamlessly integrates with `std::format`, making it effortless to print complex data structures, including aggregates, classes with private members, enums, pointers, and optional values.
 

@@ -128,6 +128,7 @@ jobs:
 
       # --- Configure & Build/Lint/Test ---
       - name: Configure CMake
+        shell: bash
         run: |
            cmake --preset ${{ matrix.preset }} \
            -DFMTU_ENABLE_JSON=${{ matrix.compiler_type == 'msvc' && 'OFF' || 'ON' }} \
