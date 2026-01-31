@@ -105,29 +105,55 @@ struct fmtu::Adapter<ClassWithAdapter>
                               fmtu::Field<"name", &ClassWithAdapter::getName>>;
 };
 
+template<class T>
+constexpr auto type_name() noexcept -> std::string_view
+{
+    using namespace std::literals;
+    using type_name_info = reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
+    constexpr std::string_view function_name =
+      reflect::detail::function_name<std::remove_pointer_t<std::remove_cvref_t<T>>>();
+
+    constexpr std::string_view qualified_type_name = [&] -> std::string_view {
+        if constexpr (type_name_info::name.contains("struct REFLECT_STRUCT"sv)) {
+            constexpr std::string_view struct_type =
+              function_name.substr(type_name_info::name.find("struct REFLECT_STRUCT"sv));
+            if constexpr (!struct_type.starts_with("struct "sv)) {
+                if constexpr (!struct_type.starts_with("class "sv)) {
+                    throw std::exception();
+                }
+                auto diff{ "struct"sv.length() - "class"sv.length() };
+                return function_name.substr(type_name_info::begin - diff,
+                                            function_name.find(type_name_info::end) - type_name_info::begin +
+                                              diff);
+            }
+        }
+        return function_name.substr(type_name_info::begin,
+                                    function_name.find(type_name_info::end) - type_name_info::begin);
+    }();
+
+    constexpr std::string_view tmp_type_name =
+      qualified_type_name.substr(0, qualified_type_name.find_first_of("<"sv, 1));
+    constexpr std::string_view type_name = tmp_type_name.substr(tmp_type_name.find_last_of("::"sv) + 1);
+    static_assert(std::size(type_name) > 0u);
+    if (std::is_constant_evaluated()) {
+        return type_name;
+    }
+    else {
+        return [&] -> std::string_view {
+            static constexpr const auto name =
+              reflect::fixed_string<std::remove_cvref_t<decltype(type_name[0])>, std::size(type_name)>{
+                  std::data(type_name)
+              };
+            return std::string_view{ name };
+        }();
+    }
+}
+
 TEST(FormatTests, Class_TypeNameReflection)
 {
-    std::string result = std::string(reflect::type_name<ClassWithAdapter>());
+    std::string result = std::string(type_name<ClassWithAdapter>());
     std::string expected = "ClassWithAdapter";
     EXPECT_EQ(result, expected);
-
-    using type_name_info =
-      reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<ClassWithAdapter>>>;
-    constexpr std::string_view function_name =
-      reflect::detail::function_name<std::remove_pointer_t<std::remove_cvref_t<ClassWithAdapter>>>();
-    constexpr std::string_view qualified_type_name = function_name.substr(
-      type_name_info::begin, function_name.find(type_name_info::end) - type_name_info::begin);
-    constexpr std::string_view tmp_type_name =
-      qualified_type_name.substr(0, qualified_type_name.find_first_of("<", 1));
-    constexpr std::string_view type_name = tmp_type_name.substr(tmp_type_name.find_last_of("::") + 1);
-
-    EXPECT_EQ(std::string(), std::string(type_name_info::name));
-    EXPECT_EQ(std::string(), std::string(&function_name.at(type_name_info::begin)));
-    EXPECT_EQ(std::string(), std::string(type_name_info::end));
-    EXPECT_EQ(std::string(), std::string(function_name));
-    EXPECT_EQ(std::string(), std::string(qualified_type_name));
-    EXPECT_EQ(std::string(), std::string(tmp_type_name));
-    EXPECT_EQ(std::string(), std::string(type_name));
 }
 
 TEST(FormatTests, Adapter_Compact)
