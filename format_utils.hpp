@@ -95,8 +95,8 @@ namespace fmtu
                 requires std::is_lvalue_reference_v<Self>
             constexpr auto end(this Self&& self)
             {
-                auto size{ self.size };
-                return std::forward<Self>(self).data.begin() + size;
+                auto offset{ self.size };
+                return std::forward<Self>(self).data.begin() + offset;
             }
         };
 
@@ -158,8 +158,8 @@ namespace fmtu
                 requires std::is_lvalue_reference_v<Self>
             constexpr auto end(this Self&& self)
             {
-                auto size{ self.size };
-                return std::forward<Self>(self).data.begin() + size;
+                auto offset{ self.size };
+                return std::forward<Self>(self).data.begin() + offset;
             }
         };
 
