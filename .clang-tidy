@@ -15,14 +15,48 @@ Checks: >
 WarningsAsErrors: ""
 HeaderFilterRegex: 'format_utils\.hpp'
 CheckOptions:
-  - key:             readability-identifier-naming.ClassCase
+  - key:             readability-identifier-naming.ConstexprVariableCase
+    value:           UPPER_CASE
+  - key:             readability-identifier-naming.MacroDefinitionCase
+    value:           UPPER_CASE
+  - key:             readability-identifier-naming.GlobalConstantCase
+    value:           UPPER_CASE
+  - key:             readability-identifier-naming.LocalConstantCase
+    value:           UPPER_CASE
+
+  - key:             readability-identifier-naming.EnumConstantCase
     value:           CamelCase
-  - key:             readability-identifier-naming.StructCase
-    value:           CamelCase
+
   - key:             readability-identifier-naming.FunctionCase
-    value:           camelBack
+    value:           snake_case
   - key:             readability-identifier-naming.VariableCase
     value:           snake_case
   - key:             readability-identifier-naming.ParameterCase
     value:           snake_case
+  - key:             readability-identifier-naming.MethodCase
+    value:           camelBack
+
+  - key:             readability-identifier-naming.ClassCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.ClassMemberCase
+    value:           camelBack
+  - key:             readability-identifier-naming.ClassMemberPrefix
+    value:           m_
+  - key:             readability-identifier-naming.StaticClassMemberPrefix
+    value:           s_
+  - key:             readability-identifier-naming.PublicMemberCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.PublicMemberPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ClassConstantCase
+    value:           UPPER_CASE
+  - key:             readability-identifier-naming.ClassConstantPrefix
+    value:           ''
+
+  - key:             readability-identifier-naming.StructCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.StructMemberCase
+    value:           snake_case
+  - key:             readability-identifier-naming.StructMemberPrefix
+    value:           ''
 ...
