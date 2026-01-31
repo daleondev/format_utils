@@ -72,7 +72,9 @@
             "inherits": "debug",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "cl",
-                "CMAKE_C_COMPILER": "cl"
+                "FMTU_ENABLE_JSON": "OFF",
+                "FMTU_ENABLE_YAML": "OFF",
+                "FMTU_ENABLE_TOML": "OFF"
             }
         },
         {
@@ -82,7 +84,9 @@
             "inherits": "release",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "cl",
-                "CMAKE_C_COMPILER": "cl"
+                "FMTU_ENABLE_JSON": "OFF",
+                "FMTU_ENABLE_YAML": "OFF",
+                "FMTU_ENABLE_TOML": "OFF"
             }
         },
         {
