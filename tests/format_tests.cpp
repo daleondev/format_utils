@@ -121,6 +121,9 @@ TEST(FormatTests, Class_TypeNameReflection)
       qualified_type_name.substr(0, qualified_type_name.find_first_of("<", 1));
     constexpr std::string_view type_name = tmp_type_name.substr(tmp_type_name.find_last_of("::") + 1);
 
+    EXPECT_EQ(std::string(), std::string(type_name_info::name));
+    EXPECT_EQ(std::string(), std::string(&function_name.at(type_name_info::begin)));
+    EXPECT_EQ(std::string(), std::string(type_name_info::end));
     EXPECT_EQ(std::string(), std::string(function_name));
     EXPECT_EQ(std::string(), std::string(qualified_type_name));
     EXPECT_EQ(std::string(), std::string(tmp_type_name));
