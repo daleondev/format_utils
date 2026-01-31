@@ -52,6 +52,8 @@ TEST(FormatTests, Aggregate_Nested)
 }
 
 #ifndef FMTU_ENABLE_GLAZE
+#include <mutex>
+
 struct AggregateWithNonFormattableMember
 {
     int64_t id;

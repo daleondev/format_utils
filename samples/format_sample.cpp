@@ -1,6 +1,5 @@
 #include "format_utils.hpp"
 
-#include <mutex>
 #include <print>
 
 // ==========================================
@@ -42,7 +41,6 @@ class User
     std::string m_name;
     std::string m_role;
     int m_level;
-    std::mutex m_mtx;
 };
 
 template<>

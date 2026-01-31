@@ -28,6 +28,48 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        },
+        {
+            "name": "gcc-debug",
+            "displayName": "GCC Debug",
+            "description": "Build with debug symbols using GCC",
+            "inherits": "debug",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "gcc-release",
+            "displayName": "GCC Release",
+            "description": "Build for release using GCC",
+            "inherits": "release",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "clang-debug",
+            "displayName": "Clang Debug",
+            "description": "Build with debug symbols using Clang",
+            "inherits": "debug",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32",
+                "CMAKE_C_FLAGS": "--target=x86_64-w64-mingw32"
+            }
+        },
+        {
+            "name": "clang-release",
+            "displayName": "Clang Release",
+            "description": "Build for release using Clang",
+            "inherits": "release",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32",
+                "CMAKE_C_FLAGS": "--target=x86_64-w64-mingw32"
+            }
         }
     ],
     "buildPresets": [
@@ -38,6 +80,22 @@
         {
             "name": "release",
             "configurePreset": "release"
+        },
+        {
+            "name": "gcc-debug",
+            "configurePreset": "gcc-debug"
+        },
+        {
+            "name": "gcc-release",
+            "configurePreset": "gcc-release"
+        },
+        {
+            "name": "clang-debug",
+            "configurePreset": "clang-debug"
+        },
+        {
+            "name": "clang-release",
+            "configurePreset": "clang-release"
         }
     ]
 }

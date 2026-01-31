@@ -6,6 +6,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(GTest)
 
+find_package(Threads REQUIRED) 
+
 add_executable(
     format_tests
     format_tests.cpp
@@ -17,6 +19,7 @@ target_link_libraries(
     GTest::gtest_main
     format_utils::format_utils
     format_utils::compiler_warnings
+    Threads::Threads
 )
 
 target_compile_features(

@@ -182,7 +182,7 @@ std::println("{:t}", cfg);
 To build the library, samples, and tests:
 
 ```bash
-cmake -S . -B build --preset debug
+cmake --preset debug
 cmake --build build --preset debug
 ```
 
