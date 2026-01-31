@@ -117,8 +117,9 @@ namespace fmtu
 
             constexpr void insert(this auto& self, std::pair<Key, Value> new_element)
             {
-                auto it{ std::ranges::find_if(
-                  self, [&new_element](const auto& element) { return element.first == new_element.first; }) };
+                auto it{ std::ranges::find_if(self, [&new_element](const auto& element) -> bool {
+                    return element.first == new_element.first;
+                }) };
 
                 if (it != self.end()) {
                     it->second = std::move(new_element.second);
@@ -134,7 +135,8 @@ namespace fmtu
 
             constexpr auto at(this const auto& self, const Key& key) -> std::optional<Value>
             {
-                auto it{ std::ranges::find_if(self, [&key](const auto& pair) { return pair.first == key; }) };
+                auto it{ std::ranges::find_if(
+                  self, [&key](const auto& pair) -> bool { return pair.first == key; }) };
 
                 if (it != self.end()) {
                     return it->second;
@@ -195,8 +197,8 @@ namespace fmtu
         {
             if constexpr (std::same_as<First, Second>) {
                 std::ranges::for_each(
-                  arr | std::views::filter([](const auto& val) { return val.second < val.first; }),
-                  [](auto& val) { std::swap(val.first, val.second); });
+                  arr | std::views::filter([](const auto& val) -> bool { return val.second < val.first; }),
+                  [](auto& val) -> void { std::swap(val.first, val.second); });
             }
             std::ranges::sort(arr);
             return std::ranges::adjacent_find(arr) == arr.end();
@@ -264,7 +266,7 @@ namespace fmtu
         {
             std::array<T, num_enumerators<T>()> result{};
             std::ranges::copy(underlying_enumerators<T>() |
-                                std::views::transform([](std::underlying_type_t<T> u) { 
+                                std::views::transform([](std::underlying_type_t<T> u) -> T { 
                                     return static_cast<T>(u); 
                                 }),
                                 result.begin());
@@ -276,8 +278,8 @@ namespace fmtu
         {
             std::array<T, num_enumerators<T>() - arr.size()> result;
             std::ranges::copy(enumerators<T>() | 
-                                std::views::filter([&arr](T e) { 
-                                    return std::ranges::none_of(arr, [e](T t) {
+                                std::views::filter([&arr](T e) -> bool { 
+                                    return std::ranges::none_of(arr, [e](T t) -> bool {
                                         return e == t;
                                     }); 
                                 }),
@@ -341,7 +343,7 @@ namespace fmtu
         consteval auto adapter_names()
         {
             using Type = std::remove_cvref_t<T>;
-            return []<size_t... Is>(std::index_sequence<Is...>) {
+            return []<size_t... Is>(std::index_sequence<Is...>) -> auto {
                 return std::array<std::string_view, sizeof...(Is)>{
                     std::tuple_element_t<Is, typename Adapter<Type>::Fields>::NAME...
                 };
@@ -352,7 +354,7 @@ namespace fmtu
         consteval auto adapter_types()
         {
             using Type = std::remove_cvref_t<T>;
-            return []<size_t... Is>(std::index_sequence<Is...>) {
+            return []<size_t... Is>(std::index_sequence<Is...>) -> auto {
                 return std::type_identity<
                   std::tuple<typename std::tuple_element_t<Is, typename Adapter<Type>::Fields>::Type...>>{};
             }(std::make_index_sequence<std::tuple_size_v<typename Adapter<Type>::Fields>>{});
@@ -382,7 +384,7 @@ namespace fmtu
         consteval auto reflect_names()
         {
             using Type = std::remove_cvref_t<T>;
-            return []<size_t... Is>(std::index_sequence<Is...>) {
+            return []<size_t... Is>(std::index_sequence<Is...>) -> auto {
                 return std::array<std::string_view, sizeof...(Is)>{ reflect::member_name<Is, Type>()... };
             }(std::make_index_sequence<reflect::size<Type>()>{});
         }
@@ -391,7 +393,7 @@ namespace fmtu
         consteval auto reflect_types()
         {
             using Type = std::remove_cvref_t<T>;
-            return []<size_t... Is>(std::index_sequence<Is...>) {
+            return []<size_t... Is>(std::index_sequence<Is...>) -> auto {
                 return std::type_identity<std::tuple<reflect::member_type<Is, Type>...>>{};
             }(std::make_index_sequence<reflect::size<Type>()>{});
         }
@@ -448,7 +450,7 @@ namespace fmtu
             std::array<char, class_format_size<Info>()> fmt{};
 
             auto iter{ fmt.begin() };
-            auto append = [&](std::string_view s) {
+            auto append = [&](std::string_view s) -> void {
                 for (char c : s) {
                     *iter++ = c;
                 }
@@ -484,8 +486,8 @@ namespace fmtu
                 size += "{{\n"sv.length();
             }
 
-            [&]<size_t... Is>(std::index_sequence<Is...>) {
-                ([&](auto i) {
+            [&]<size_t... Is>(std::index_sequence<Is...>) -> void {
+                ([&](auto i) -> void {
                     using MemberType = std::tuple_element_t<i, typename Info::MemberTypes>;
 
                     size += (Level + 1) * PRETTY_INDENT.size();
@@ -520,7 +522,7 @@ namespace fmtu
             std::array<char, class_pretty_format_size<Info, Level>()> fmt{};
 
             auto iter{ fmt.begin() };
-            auto append = [&](std::string_view s) {
+            auto append = [&](std::string_view s) -> void {
                 for (char c : s) {
                     *iter++ = c;
                 }
@@ -534,8 +536,8 @@ namespace fmtu
                 append("{{\n");
             }
 
-            [&]<size_t... Is>(std::index_sequence<Is...>) {
-                ([&](auto i) {
+            [&]<size_t... Is>(std::index_sequence<Is...>) -> void {
+                ([&](auto i) -> void {
                     using MemberType = std::tuple_element_t<i, typename Info::MemberTypes>;
 
                     for (auto i{ 0UZ }; i < (Level + 1); ++i) {
@@ -596,13 +598,13 @@ namespace fmtu
             using Type = std::remove_cvref_t<T>;
             if constexpr (fmtu::detail::HasAdapter<Type>) {
                 using Fields = typename fmtu::Adapter<Type>::Fields;
-                return [&]<size_t... Is>(std::index_sequence<Is...>) {
+                return [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
                     return std::tuple_cat(
                       make_flat_args_tuple(std::invoke(std::tuple_element_t<Is, Fields>::VALUE, val))...);
                 }(std::make_index_sequence<std::tuple_size_v<Fields>>{});
             }
             else if constexpr (fmtu::detail::Reflectable<Type>) {
-                return [&]<size_t... Is>(std::index_sequence<Is...>) {
+                return [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
                     return std::tuple_cat(make_flat_args_tuple(reflect::get<Is>(val))...);
                 }(std::make_index_sequence<reflect::size<Type>()>{});
             }
@@ -639,17 +641,17 @@ namespace fmtu
             for (auto spec : specs) {
                 FixedVector<FmtSpecs, NUM_FMT_SPECS - 1> incompatible{};
 
-                auto incompatible_view{ specs | std::views::filter([spec](auto other) {
+                auto incompatible_view{ specs | std::views::filter([spec](auto other) -> bool {
                     if (spec == other) {
                         return false;
                     }
-                    return std::ranges::none_of(COMPATIBLE_FMT_SPEC_PAIRS, [&](const auto& pair) {
+                    return std::ranges::none_of(COMPATIBLE_FMT_SPEC_PAIRS, [&](const auto& pair) -> bool {
                         return (pair.first == spec && pair.second == other) ||
                                (pair.first == other && pair.second == spec);
                     });
                 }) };
 
-                std::ranges::for_each(incompatible_view, [&](auto val) { incompatible.add(val); });
+                std::ranges::for_each(incompatible_view, [&](auto val) -> void { incompatible.add(val); });
 
                 incompatible_specs.insert(std::make_pair(spec, incompatible));
             }
@@ -737,7 +739,7 @@ namespace fmtu
             bool yaml;
             bool toml;
 
-            constexpr bool operator==(const FmtOpts&) const = default;
+            constexpr auto operator==(const FmtOpts&) const -> bool = default;
             constexpr operator bool(this const auto& self) { return self != FmtOpts{}; }
         };
 
@@ -829,8 +831,9 @@ namespace fmtu
             if (fmt_opts.pretty) {
                 auto args{ fmtu::detail::make_flat_args_tuple(t) };
                 static constexpr auto fmt{ fmtu::detail::class_pretty_format<Info>() };
-                return std::apply(
-                  [&ctx](const auto&... args) { return std::format_to(ctx.out(), fmt, args...); }, args);
+                return std::apply([&ctx](const auto&... args) -> Ctx::iterator {
+                    return std::format_to(ctx.out(), fmt, args...);
+                }, args);
             }
 
             return std::nullopt;
@@ -890,15 +893,16 @@ struct std::formatter<T>
             }
         }
 
-        auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) {
+        auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
             using Fields = typename fmtu::Adapter<std::remove_cvref_t<T>>::Fields;
             return fmtu::detail::make_args_tuple(
               fmtu::detail::check_arg(std::invoke(std::tuple_element_t<Is, Fields>::VALUE, t))...);
         }(std::make_index_sequence<Info::numMembers()>{}) };
 
         static constexpr auto fmt{ fmtu::detail::class_format<Info>() };
-        return std::apply([&ctx](const auto&... args) { return std::format_to(ctx.out(), fmt, args...); },
-                          args);
+        return std::apply([&ctx](const auto&... args) -> Ctx::iterator {
+            return std::format_to(ctx.out(), fmt, args...);
+        }, args);
     }
 };
 
@@ -953,13 +957,14 @@ struct std::formatter<T>
             }
         }
 
-        auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) {
+        auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
             return fmtu::detail::make_args_tuple(fmtu::detail::check_arg(reflect::get<Is>(t))...);
         }(std::make_index_sequence<reflect::size<T>()>{}) };
 
         static constexpr auto fmt{ fmtu::detail::class_format<Info>() };
-        return std::apply([&ctx](const auto&... args) { return std::format_to(ctx.out(), fmt, args...); },
-                          args);
+        return std::apply([&ctx](const auto&... args) -> Ctx::iterator {
+            return std::format_to(ctx.out(), fmt, args...);
+        }, args);
     }
 };
 

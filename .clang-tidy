@@ -2,6 +2,7 @@
 Checks: >
   readability-*,
   bugprone-*,
+  modernize-*,
   -readability-identifier-length,
   -readability-braces-around-statements,
   -readability-implicit-bool-conversion
