@@ -66,6 +66,24 @@
             }
         },
         {
+            "name": "clang-debug-linux",
+            "displayName": "Clang Debug (Linux)",
+            "description": "Build with debug symbols using Clang (libc++)",
+            "inherits": "clang-debug",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-stdlib=libc++"
+            }
+        },
+        {
+            "name": "clang-release-linux",
+            "displayName": "Clang Release (Linux)",
+            "description": "Build for release using Clang (libc++)",
+            "inherits": "clang-release",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-stdlib=libc++"
+            }
+        },
+        {
             "name": "clang-debug-mingw",
             "displayName": "Clang Debug (MinGW)",
             "description": "Build with debug symbols using Clang (MinGW target)",
@@ -84,10 +102,21 @@
             }
         },
         {
-            "name": "tidy",
-            "displayName": "Clang Tidy (Debug)",
-            "description": "Build with debug symbols and Clang-Tidy enabled",
-            "inherits": "clang-debug",
+            "name": "tidy-linux",
+            "displayName": "Clang Tidy (Linux)",
+            "description": "Build with debug symbols and Clang-Tidy enabled (Linux)",
+            "inherits": "clang-debug-linux",
+            "cacheVariables": {
+                "ENABLE_CLANG_TIDY": "ON",
+                "BUILD_SAMPLES": "ON",
+                "BUILD_TESTS": "OFF"
+            }
+        },
+        {
+            "name": "tidy-mingw",
+            "displayName": "Clang Tidy (MinGW)",
+            "description": "Build with debug symbols and Clang-Tidy enabled (MinGW)",
+            "inherits": "clang-debug-mingw",
             "cacheVariables": {
                 "ENABLE_CLANG_TIDY": "ON",
                 "BUILD_SAMPLES": "ON",
@@ -121,6 +150,14 @@
             "configurePreset": "clang-release"
         },
         {
+            "name": "clang-debug-linux",
+            "configurePreset": "clang-debug-linux"
+        },
+        {
+            "name": "clang-release-linux",
+            "configurePreset": "clang-release-linux"
+        },
+        {
             "name": "clang-debug-mingw",
             "configurePreset": "clang-debug-mingw"
         },
@@ -129,8 +166,12 @@
             "configurePreset": "clang-release-mingw"
         },
         {
-            "name": "tidy",
-            "configurePreset": "tidy"
+            "name": "tidy-linux",
+            "configurePreset": "tidy-linux"
+        },
+        {
+            "name": "tidy-mingw",
+            "configurePreset": "tidy-mingw"
         }
     ],
     "testPresets": [
@@ -157,6 +198,14 @@
         {
             "name": "clang-release",
             "configurePreset": "clang-release"
+        },
+        {
+            "name": "clang-debug-linux",
+            "configurePreset": "clang-debug-linux"
+        },
+        {
+            "name": "clang-release-linux",
+            "configurePreset": "clang-release-linux"
         },
         {
             "name": "clang-debug-mingw",

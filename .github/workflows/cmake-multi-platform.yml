@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        preset: [gcc-release, clang-release, tidy]
+        preset: [gcc-release, clang-release-linux, tidy-linux]
 
     steps:
     - uses: actions/checkout@v4
@@ -29,12 +29,12 @@ jobs:
       run: |
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         sudo apt-get update
-        sudo apt-get install -y g++-15
+        sudo apt-get install -y gcc-15 g++-15
         echo "CC=gcc-15" >> $GITHUB_ENV
         echo "CXX=g++-15" >> $GITHUB_ENV
 
     - name: Install Clang 21
-      if: matrix.preset == 'clang-release' || matrix.preset == 'tidy'
+      if: matrix.preset == 'clang-release-linux' || matrix.preset == 'tidy-linux'
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
@@ -51,5 +51,5 @@ jobs:
       run: cmake --build --preset ${{ matrix.preset }}
 
     - name: Test
-      if: matrix.preset != 'tidy'
+      if: matrix.preset != 'tidy-linux'
       run: ctest --preset ${{ matrix.preset }} --output-on-failure
