@@ -24,6 +24,8 @@ jobs:
             preset: tidy-linux
           # --- Windows ---
           - os: windows-latest
+            preset: msvc-release
+          - os: windows-latest
             preset: gcc-release
           - os: windows-latest
             preset: clang-release-mingw
@@ -65,9 +67,11 @@ jobs:
     # --- Windows Dependencies ---
     - name: Install Dependencies (Windows)
       if: runner.os == 'Windows'
-      run: |
-        choco install ninja
-        # We can also add specific mingw or llvm installs here if the default runner versions aren't sufficient
+      run: choco install ninja
+
+    - name: Set up MSVC Environment (Windows)
+      if: runner.os == 'Windows' && matrix.preset == 'msvc-release'
+      uses: ilammy/msvc-dev-cmd@v1
 
     # --- Configure & Build ---
     - name: Configure CMake

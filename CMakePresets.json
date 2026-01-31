@@ -66,6 +66,26 @@
             }
         },
         {
+            "name": "msvc-debug",
+            "displayName": "MSVC Debug",
+            "description": "Build with debug symbols using MSVC",
+            "inherits": "debug",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "cl",
+                "CMAKE_C_COMPILER": "cl"
+            }
+        },
+        {
+            "name": "msvc-release",
+            "displayName": "MSVC Release",
+            "description": "Build for release using MSVC",
+            "inherits": "release",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "cl",
+                "CMAKE_C_COMPILER": "cl"
+            }
+        },
+        {
             "name": "clang-debug-linux",
             "displayName": "Clang Debug (Linux)",
             "description": "Build with debug symbols using Clang (libc++)",
@@ -150,6 +170,14 @@
             "configurePreset": "clang-release"
         },
         {
+            "name": "msvc-debug",
+            "configurePreset": "msvc-debug"
+        },
+        {
+            "name": "msvc-release",
+            "configurePreset": "msvc-release"
+        },
+        {
             "name": "clang-debug-linux",
             "configurePreset": "clang-debug-linux"
         },
@@ -198,6 +226,14 @@
         {
             "name": "clang-release",
             "configurePreset": "clang-release"
+        },
+        {
+            "name": "msvc-debug",
+            "configurePreset": "msvc-debug"
+        },
+        {
+            "name": "msvc-release",
+            "configurePreset": "msvc-release"
         },
         {
             "name": "clang-debug-linux",
