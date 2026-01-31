@@ -6,9 +6,9 @@ project(
     LANGUAGES CXX
 )
 
-option(FMTU_ENABLE_JSON "Enable JSON support." ON)
-option(FMTU_ENABLE_YAML "Enable YAML support." ON)
-option(FMTU_ENABLE_TOML "Enable TOML support." ON)
+option(FMTU_ENABLE_JSON "Enable JSON support." OFF)
+option(FMTU_ENABLE_YAML "Enable YAML support." OFF)
+option(FMTU_ENABLE_TOML "Enable TOML support." OFF)
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/deps.cmake)
 
@@ -60,5 +60,6 @@ endif()
 
 option(BUILD_TESTS "Build the tests." ON)
 if(BUILD_TESTS)
+    enable_testing()
     add_subdirectory(tests)
 endif()

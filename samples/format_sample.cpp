@@ -93,21 +93,21 @@ int main()
     // -------------------------------------------------
     std::println("--- 3. Serialization (Glaze Integration) ---");
 
-    if constexpr (fmtu::IS_JSON_ENABLED) {
-        std::println("Compact JSON: {:j}", user);
-        std::println("Pretty JSON: \n{:pj}", user);
-        std::println("");
-    }
+#ifdef FMTU_ENABLE_JSON
+    std::println("Compact JSON: {:j}", user);
+    std::println("Pretty JSON: \n{:pj}", user);
+    std::println("");
+#endif
 
-    if constexpr (fmtu::IS_YAML_ENABLED) {
-        std::println("YAML: \n{:y}", user);
-        std::println("");
-    }
+#ifdef FMTU_ENABLE_YAML
+    std::println("YAML: \n{:y}", user);
+    std::println("");
+#endif
 
-    if constexpr (fmtu::IS_TOML_ENABLED) {
-        std::println("TOML: \n{:t}", user);
-        std::println("");
-    }
+#ifdef FMTU_ENABLE_TOML
+    std::println("TOML: \n{:t}", user);
+    std::println("");
+#endif
 
     // -------------------------------------------------
     // Scenario 4: Enums

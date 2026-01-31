@@ -28,6 +28,5 @@ target_compile_features(
     cxx_std_23
 )
 
-enable_testing()
 include(GoogleTest)
 gtest_discover_tests(format_tests)
