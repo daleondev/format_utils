@@ -72,11 +72,11 @@ jobs:
     # --- Configure & Build ---
     - name: Configure without Glaze
       if: matrix.preset == 'msvc-release'
-      run: cmake --preset ${{ matrix.preset }} DFMTU_ENABLE_JSON=OFF DFMTU_ENABLE_YAML=OFF DFMTU_ENABLE_TOML=OFF
+      run: cmake --preset ${{ matrix.preset }} -DFMTU_ENABLE_JSON=OFF -DFMTU_ENABLE_YAML=OFF -DFMTU_ENABLE_TOML=OFF
 
     - name: Configure with Glaze
       if: matrix.preset != 'msvc-release'
-      run: cmake --preset ${{ matrix.preset }} DFMTU_ENABLE_JSON=ON DFMTU_ENABLE_YAML=ON DFMTU_ENABLE_TOML=ON
+      run: cmake --preset ${{ matrix.preset }} -DFMTU_ENABLE_JSON=ON -DFMTU_ENABLE_YAML=ON -DFMTU_ENABLE_TOML=ON
 
     - name: Build
       run: cmake --build --preset ${{ matrix.preset }}
