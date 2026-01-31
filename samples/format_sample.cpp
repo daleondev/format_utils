@@ -98,14 +98,17 @@ int main()
     if constexpr (fmtu::IS_JSON_ENABLED) {
         std::println("Compact JSON: {:j}", user);
         std::println("Pretty JSON: \n{:pj}", user);
+        std::println("");
     }
 
     if constexpr (fmtu::IS_YAML_ENABLED) {
         std::println("YAML: \n{:y}", user);
+        std::println("");
     }
 
     if constexpr (fmtu::IS_TOML_ENABLED) {
         std::println("TOML: \n{:t}", user);
+        std::println("");
     }
 
     // -------------------------------------------------
