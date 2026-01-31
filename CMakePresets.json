@@ -71,10 +71,7 @@
             "description": "Build with debug symbols using MSVC",
             "inherits": "debug",
             "cacheVariables": {
-                "CMAKE_CXX_COMPILER": "cl",
-                "FMTU_ENABLE_JSON": "OFF",
-                "FMTU_ENABLE_YAML": "OFF",
-                "FMTU_ENABLE_TOML": "OFF"
+                "CMAKE_CXX_COMPILER": "cl"
             }
         },
         {
@@ -83,10 +80,7 @@
             "description": "Build for release using MSVC",
             "inherits": "release",
             "cacheVariables": {
-                "CMAKE_CXX_COMPILER": "cl",
-                "FMTU_ENABLE_JSON": "OFF",
-                "FMTU_ENABLE_YAML": "OFF",
-                "FMTU_ENABLE_TOML": "OFF"
+                "CMAKE_CXX_COMPILER": "cl"
             }
         },
         {

@@ -71,9 +71,15 @@ jobs:
 
     # --- Configure & Build ---
     - name: Configure CMake
+
       run: cmake --preset ${{ matrix.preset }}
 
-    - name: Build
+    - name: Build with Glaze
+      if: runner.os == 'Linux'
+      run: cmake --build --preset ${{ matrix.preset }} DFMTU_ENABLE_JSON=ON DFMTU_ENABLE_YAML=ON DFMTU_ENABLE_TOML=ON
+
+    - name: Build without Glaze
+      if: runner.os == 'Windows'
       run: cmake --build --preset ${{ matrix.preset }}
 
     - name: Test
