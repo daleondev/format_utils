@@ -1,0 +1,24 @@
+find_package(Threads REQUIRED) 
+
+add_executable(
+    format_tests
+    format_tests.cpp
+)
+
+target_link_libraries(
+    format_tests
+    PRIVATE
+    GTest::gtest_main
+    format_utils::format_utils
+    format_utils::compiler_warnings
+    Threads::Threads
+)
+
+target_compile_features(
+    format_tests
+    PRIVATE
+    cxx_std_23
+)
+
+include(GoogleTest)
+gtest_discover_tests(format_tests)
