@@ -626,10 +626,8 @@ namespace fmtu
             std::make_pair(FmtSpecs::Pretty, FmtSpecs::Json)
         };
 
-#ifndef __INTELLISENSE__
         static_assert(is_array_of_pairs_unique(COMPATIBLE_FMT_SPEC_PAIRS),
                       "Compatible format specifier pairs not unique");
-#endif
 
         consteval auto generate_incompatible_specs()
         {
@@ -741,7 +739,6 @@ namespace fmtu
             constexpr auto has_opt() const -> bool { return *this != FmtOpts{}; }
         };
 
-#ifndef __INTELLISENSE__
         // clang-format off
         static constexpr FixedMap<FmtSpecs, bool FmtOpts::*, NUM_FMT_SPECS> FMT_SPECS_TO_OPTS{std::array{ 
             std::make_pair(FmtSpecs::Verbose,   &FmtOpts::verbose),
@@ -751,7 +748,6 @@ namespace fmtu
             std::make_pair(FmtSpecs::Toml,      &FmtOpts::toml) 
         }};
         // clang-format on
-#endif
 
         template<FmtOpts AllowedOpts, typename Ctx>
         constexpr auto parse_fmt_opts(Ctx& ctx, FmtOpts& active_opts) -> Ctx::iterator
