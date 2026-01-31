@@ -71,7 +71,7 @@ jobs:
 
     # --- Configure & Build ---
     - name: Configure CMake
-      run: cmake --preset ${{ matrix.preset }} -DFMTU_ENABLE_JSON=ON -DFMTU_ENABLE_YAML=ON -DFMTU_ENABLE_TOML=ON
+      run: cmake --preset ${{ matrix.preset }}
 
     - name: Build
       run: cmake --build --preset ${{ matrix.preset }}
