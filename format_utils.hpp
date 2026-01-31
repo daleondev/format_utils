@@ -194,6 +194,17 @@ namespace fmtu
 
         // ---------- Helpers ----------
 
+        // clang-format off
+        // This updated version of reflect::type_name fixes a bug where the distinction between class and
+        // struct in MSVC source_location::function_name() broke the reflection.
+        //
+        // Reference (Struct): "... function_name<struct REFLECT_STRUCT>(void) ..."
+        //                                        ^^^^^^
+        // Actual (Class):     "... function_name<class MyClass>(void) ..."
+        //                                        ^^^^^
+        // The length difference between "struct" (6) and "class" (5) shifts the start index of the
+        // type name, causing the original extraction logic to fail for classes.
+        // clang-format on
         template<class T>
         constexpr auto type_name() noexcept -> std::string_view
         {
