@@ -250,6 +250,16 @@ int main()
 
 ## Build Instructions
 
+### Available CMake Configuration Options
+
+| Option | Description | Default |
+| :--- | :--- | :--- |
+| `FMTU_ENABLE_JSON` | Enable JSON support via Glaze | `OFF` |
+| `FMTU_ENABLE_TOML` | Enable TOML support via Glaze | `OFF` |
+| `FMTU_ENABLE_YAML` | Enable YAML support via Glaze | `OFF` |
+| `BUILD_SAMPLES` | Build sample executables | `ON` |
+| `BUILD_TESTS` | Build unit tests | `ON` |
+
 ### Available CMake Presets
 
 | Preset Name | Description | Compiler |
@@ -272,13 +282,13 @@ cmake --preset clang-release-linux
 cmake --build --preset clang-release-linux
 ```
 
-Run the sample:
+### Run the sample:
 ```bash
 # ./build/<compiler>-<build_type>-<platform>/samples/format_sample
 ./build/clang-release-linux/samples/format_sample
 ```
 
-Run tests:
+### Run tests:
 ```bash
 # ctest --preset <compiler>-<build_type>-<platform>
 ctest --preset clang-release-linux
@@ -293,16 +303,6 @@ cmake --preset tidy-linux
 # cmake --build --preset tidy-<platform>
 cmake --build --preset tidy-linux --clean-first
 ```
-
-### Configuration Options
-
-| Option | Description | Default |
-| :--- | :--- | :--- |
-| `FMTU_ENABLE_JSON` | Enable JSON support via Glaze | `OFF` |
-| `FMTU_ENABLE_TOML` | Enable TOML support via Glaze | `OFF` |
-| `FMTU_ENABLE_YAML` | Enable YAML support via Glaze | `OFF` |
-| `BUILD_SAMPLES` | Build sample executables | `ON` |
-| `BUILD_TESTS` | Build unit tests | `ON` |
 
 ## Compiler Support
 
