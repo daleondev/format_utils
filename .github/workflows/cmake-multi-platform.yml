@@ -60,8 +60,10 @@ jobs:
         chmod +x llvm.sh
         sudo ./llvm.sh 19
         sudo apt-get install -y clang-tidy-19 libc++-19-dev libc++abi-19-dev
-        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100 --slave /usr/bin/clang++ clang++ /usr/bin/clang++-19
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100
         sudo update-alternatives --set clang /usr/bin/clang-19
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
+        sudo update-alternatives --set clang++ /usr/bin/clang++-19
         sudo ln -sf /usr/bin/clang-tidy-19 /usr/bin/clang-tidy
         echo "CC=clang-19" >> $GITHUB_ENV
         echo "CXX=clang++-19" >> $GITHUB_ENV
