@@ -167,7 +167,7 @@ namespace fmtu
 
         // clang-format off
         template<typename T>
-        consteval auto namespace_name() noexcept -> std::string_view
+        consteval auto namespace_name() -> std::string_view
         {
             using type_name_info = reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
             constexpr std::string_view function_name{
