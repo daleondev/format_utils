@@ -3,25 +3,16 @@ Checks: >
   readability-*,
   bugprone-*,
   modernize-*,
+  performance-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
   -readability-identifier-length,
   -readability-braces-around-statements,
-  -readability-implicit-bool-conversion
+  -readability-implicit-bool-conversion,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-constant-array-index
 
-# Checks: >
-#   bugprone-*,
-#   modernize-*,
-#   performance-*,
-#   readability-*,
-#   cppcoreguidelines-*,
-#   clang-analyzer-*,
-#   -readability-identifier-length,
-#   -readability-braces-around-statements,
-#   -readability-implicit-bool-conversion
-#   -modernize-use-trailing-return-type,
-#   -modernize-use-nodiscard,
-#   -cppcoreguidelines-pro-bounds-pointer-arithmetic
-
-WarningsAsErrors: ""
+WarningsAsErrors: '*'
 HeaderFilterRegex: 'format_utils\.hpp'
 CheckOptions:
   - key:             readability-identifier-naming.MacroDefinitionCase

@@ -60,6 +60,7 @@ namespace fmtu
             constexpr FixedVector() = default;
 
             template<size_t Size>
+            // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
             constexpr FixedVector(std::array<T, Size>&& arr)
               : size{ Size }
             {
@@ -108,6 +109,7 @@ namespace fmtu
             constexpr FixedMap() = default;
 
             template<size_t Size>
+            // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
             constexpr FixedMap(std::array<std::pair<Key, Value>, Size>&& arr)
               : size{ Size }
             {
@@ -175,7 +177,7 @@ namespace fmtu
                 function_name.substr(type_name_info::begin, function_name.find(type_name_info::end) - type_name_info::begin) 
             };
             constexpr std::string_view tmp_type_name{ 
-                qualified_type_name.substr(0, qualified_type_name.find_first_of("<", 1)) 
+                qualified_type_name.substr(0, qualified_type_name.find_first_of('<', 1)) 
             };
             constexpr std::string_view namespace_name{ 
                 tmp_type_name.substr(0, tmp_type_name.find_last_of("::") + 1) 
