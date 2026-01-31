@@ -542,7 +542,7 @@ namespace fmtu
                 ([&](auto i) -> void {
                     using MemberType = std::tuple_element_t<i, typename Info::MemberTypes>;
 
-                    for (auto i{ 0UZ }; i < (Level + 1); ++i) {
+                    for (auto j{ 0UZ }; j < (Level + 1); ++j) {
                         append(PRETTY_INDENT);
                     }
                     append(Info::MEMBER_NAMES[i]);
