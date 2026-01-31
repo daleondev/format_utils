@@ -70,16 +70,16 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
 
     # --- Configure & Build ---
-    - name: Configure CMake
-      run: cmake --preset ${{ matrix.preset }}
-
-    - name: Build with Glaze
-      if: matrix.preset != 'msvc-release'
-      run: cmake --build --preset ${{ matrix.preset }} DFMTU_ENABLE_JSON=ON DFMTU_ENABLE_YAML=ON DFMTU_ENABLE_TOML=ON
-
-    - name: Build without Glaze
+    - name: Configure without Glaze
       if: matrix.preset == 'msvc-release'
-      run: cmake --build --preset ${{ matrix.preset }} DFMTU_ENABLE_JSON=OFF DFMTU_ENABLE_YAML=OFF DFMTU_ENABLE_TOML=OFF
+      run: cmake --preset ${{ matrix.preset }} DFMTU_ENABLE_JSON=OFF DFMTU_ENABLE_YAML=OFF DFMTU_ENABLE_TOML=OFF
+
+    - name: Configure with Glaze
+      if: matrix.preset != 'msvc-release'
+      run: cmake --preset ${{ matrix.preset }} DFMTU_ENABLE_JSON=ON DFMTU_ENABLE_YAML=ON DFMTU_ENABLE_TOML=ON
+
+    - name: Build
+      run: cmake --build --preset ${{ matrix.preset }}
 
     - name: Test
       if: matrix.preset != 'tidy-linux' && matrix.preset != 'tidy-mingw'
