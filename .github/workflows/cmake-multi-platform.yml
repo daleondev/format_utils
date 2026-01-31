@@ -24,25 +24,25 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ninja-build software-properties-common wget
 
-    - name: Install GCC 15
+    - name: Install GCC 14
       if: matrix.preset == 'gcc-release'
       run: |
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         sudo apt-get update
-        sudo apt-get install -y gcc-15 g++-15
-        echo "CC=gcc-15" >> $GITHUB_ENV
-        echo "CXX=g++-15" >> $GITHUB_ENV
+        sudo apt-get install -y gcc-14 g++-14
+        echo "CC=gcc-14" >> $GITHUB_ENV
+        echo "CXX=g++-14" >> $GITHUB_ENV
 
-    - name: Install Clang 21
+    - name: Install Clang 19
       if: matrix.preset == 'clang-release-linux' || matrix.preset == 'tidy-linux'
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 21
-        sudo apt-get install -y clang-tidy-21 libc++-21-dev libc++abi-21-dev
-        sudo ln -sf /usr/bin/clang-tidy-21 /usr/bin/clang-tidy
-        echo "CC=clang-21" >> $GITHUB_ENV
-        echo "CXX=clang++-21" >> $GITHUB_ENV
+        sudo ./llvm.sh 19
+        sudo apt-get install -y clang-tidy-19 libc++-19-dev libc++abi-19-dev
+        sudo ln -sf /usr/bin/clang-tidy-19 /usr/bin/clang-tidy
+        echo "CC=clang-19" >> $GITHUB_ENV
+        echo "CXX=clang++-19" >> $GITHUB_ENV
 
     - name: Configure CMake
       run: cmake --preset ${{ matrix.preset }} -DFMTU_ENABLE_JSON=ON -DFMTU_ENABLE_YAML=ON -DFMTU_ENABLE_TOML=ON
