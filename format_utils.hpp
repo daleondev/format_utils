@@ -832,11 +832,11 @@ namespace fmtu
             }
 #endif
             if (fmt_opts.pretty) {
-                auto args{ fmtu::detail::make_flat_args_tuple(t) };
+                auto args_tuple{ fmtu::detail::make_flat_args_tuple(t) };
                 static constexpr auto fmt{ fmtu::detail::class_pretty_format<Info>() };
                 return std::apply([&ctx](const auto&... args) -> Ctx::iterator {
                     return std::format_to(ctx.out(), fmt, args...);
-                }, args);
+                }, args_tuple);
             }
 
             return std::nullopt;
@@ -896,7 +896,7 @@ struct std::formatter<T>
             }
         }
 
-        auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
+        auto args_tuple{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
             using Fields = typename fmtu::Adapter<std::remove_cvref_t<T>>::Fields;
             return fmtu::detail::make_args_tuple(
               fmtu::detail::check_arg(std::invoke(std::tuple_element_t<Is, Fields>::VALUE, t))...);
@@ -905,7 +905,7 @@ struct std::formatter<T>
         static constexpr auto fmt{ fmtu::detail::class_format<Info>() };
         return std::apply([&ctx](const auto&... args) -> Ctx::iterator {
             return std::format_to(ctx.out(), fmt, args...);
-        }, args);
+        }, args_tuple);
     }
 };
 
@@ -960,14 +960,14 @@ struct std::formatter<T>
             }
         }
 
-        auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
+        auto args_tuple{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
             return fmtu::detail::make_args_tuple(fmtu::detail::check_arg(reflect::get<Is>(t))...);
         }(std::make_index_sequence<reflect::size<T>()>{}) };
 
         static constexpr auto fmt{ fmtu::detail::class_format<Info>() };
         return std::apply([&ctx](const auto&... args) -> Ctx::iterator {
             return std::format_to(ctx.out(), fmt, args...);
-        }, args);
+        }, args_tuple);
     }
 };
 
