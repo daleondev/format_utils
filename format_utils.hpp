@@ -95,8 +95,8 @@ namespace fmtu
                 requires std::is_lvalue_reference_v<Self>
             constexpr auto end(this Self&& self)
             {
-                auto size{ self.size };
-                return std::forward<Self>(self).data.begin() + size;
+                auto offset{ self.size };
+                return std::forward<Self>(self).data.begin() + offset;
             }
         };
 
@@ -158,8 +158,8 @@ namespace fmtu
                 requires std::is_lvalue_reference_v<Self>
             constexpr auto end(this Self&& self)
             {
-                auto size{ self.size };
-                return std::forward<Self>(self).data.begin() + size;
+                auto offset{ self.size };
+                return std::forward<Self>(self).data.begin() + offset;
             }
         };
 
@@ -167,7 +167,7 @@ namespace fmtu
 
         // clang-format off
         template<typename T>
-        consteval auto namespace_name() noexcept -> std::string_view
+        consteval auto namespace_name() -> std::string_view
         {
             using type_name_info = reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
             constexpr std::string_view function_name{
@@ -193,6 +193,62 @@ namespace fmtu
         }
 
         // ---------- Helpers ----------
+
+        // clang-format off
+        // This updated version of reflect::type_name fixes a bug where the distinction between class and
+        // struct in MSVC source_location::function_name() broke the reflection.
+        //
+        // Reference (Struct): "... function_name<struct REFLECT_STRUCT>(void) ..."
+        //                                        ^^^^^^
+        // Actual (Class):     "... function_name<class MyClass>(void) ..."
+        //                                        ^^^^^
+        // The length difference between "struct" (6) and "class" (5) shifts the start index of the
+        // type name, causing the original extraction logic to fail for classes.
+        // clang-format on
+        template<class T>
+        constexpr auto type_name() -> std::string_view
+        {
+            using namespace std::literals;
+            using type_name_info =
+              reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
+            constexpr std::string_view function_name =
+              reflect::detail::function_name<std::remove_pointer_t<std::remove_cvref_t<T>>>();
+
+            constexpr std::string_view qualified_type_name = [&] -> std::string_view {
+                if constexpr (type_name_info::name.contains("struct REFLECT_STRUCT"sv)) {
+                    constexpr std::string_view struct_type =
+                      function_name.substr(type_name_info::name.find("struct REFLECT_STRUCT"sv));
+                    if constexpr (!struct_type.starts_with("struct "sv)) {
+                        if constexpr (!struct_type.starts_with("class "sv)) {
+                            throw std::exception();
+                        }
+                        auto diff{ "struct"sv.length() - "class"sv.length() };
+                        return function_name.substr(type_name_info::begin - diff,
+                                                    function_name.find(type_name_info::end) -
+                                                      type_name_info::begin + diff);
+                    }
+                }
+                return function_name.substr(type_name_info::begin,
+                                            function_name.find(type_name_info::end) - type_name_info::begin);
+            }();
+
+            constexpr std::string_view tmp_type_name =
+              qualified_type_name.substr(0, qualified_type_name.find_first_of("<"sv, 1));
+            constexpr std::string_view type_name =
+              tmp_type_name.substr(tmp_type_name.find_last_of("::"sv) + 1);
+            static_assert(std::size(type_name) > 0U);
+
+            if (std::is_constant_evaluated()) {
+                return type_name;
+            }
+            return [&] -> std::string_view {
+                static constexpr const auto name =
+                  reflect::fixed_string<std::remove_cvref_t<decltype(type_name[0])>, std::size(type_name)>{
+                      std::data(type_name)
+                  };
+                return std::string_view{ name };
+            }();
+        }
 
         template<typename First, typename Second, size_t N>
         consteval auto is_array_of_pairs_unique(std::array<std::pair<First, Second>, N> arr) -> bool
@@ -369,7 +425,7 @@ namespace fmtu
         struct AdapterInfo
         {
             using Type = std::remove_cvref_t<T>;
-            static constexpr std::string_view NAME{ reflect::type_name<T>() };
+            static constexpr std::string_view NAME{ type_name<T>() };
             using MemberTypes = adapter_types_t<T>;
             static constexpr std::array MEMBER_NAMES{ adapter_names<T>() };
             static consteval auto numMembers() -> size_t { return MEMBER_NAMES.size(); };
@@ -407,7 +463,7 @@ namespace fmtu
         struct ReflectableInfo
         {
             using Type = std::remove_cvref_t<T>;
-            static constexpr std::string_view NAME{ reflect::type_name<T>() };
+            static constexpr std::string_view NAME{ type_name<T>() };
             using MemberTypes = reflect_types_t<T>;
             static constexpr std::array MEMBER_NAMES{ reflect_names<T>() };
             static consteval auto numMembers() -> size_t { return MEMBER_NAMES.size(); };
@@ -542,7 +598,7 @@ namespace fmtu
                 ([&](auto i) -> void {
                     using MemberType = std::tuple_element_t<i, typename Info::MemberTypes>;
 
-                    for (auto i{ 0UZ }; i < (Level + 1); ++i) {
+                    for (auto j{ 0UZ }; j < (Level + 1); ++j) {
                         append(PRETTY_INDENT);
                     }
                     append(Info::MEMBER_NAMES[i]);
@@ -832,11 +888,11 @@ namespace fmtu
             }
 #endif
             if (fmt_opts.pretty) {
-                auto args{ fmtu::detail::make_flat_args_tuple(t) };
+                auto args_tuple{ fmtu::detail::make_flat_args_tuple(t) };
                 static constexpr auto fmt{ fmtu::detail::class_pretty_format<Info>() };
                 return std::apply([&ctx](const auto&... args) -> Ctx::iterator {
                     return std::format_to(ctx.out(), fmt, args...);
-                }, args);
+                }, args_tuple);
             }
 
             return std::nullopt;
@@ -896,7 +952,7 @@ struct std::formatter<T>
             }
         }
 
-        auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
+        auto args_tuple{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
             using Fields = typename fmtu::Adapter<std::remove_cvref_t<T>>::Fields;
             return fmtu::detail::make_args_tuple(
               fmtu::detail::check_arg(std::invoke(std::tuple_element_t<Is, Fields>::VALUE, t))...);
@@ -905,7 +961,7 @@ struct std::formatter<T>
         static constexpr auto fmt{ fmtu::detail::class_format<Info>() };
         return std::apply([&ctx](const auto&... args) -> Ctx::iterator {
             return std::format_to(ctx.out(), fmt, args...);
-        }, args);
+        }, args_tuple);
     }
 };
 
@@ -960,14 +1016,14 @@ struct std::formatter<T>
             }
         }
 
-        auto args{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
+        auto args_tuple{ [&]<size_t... Is>(std::index_sequence<Is...>) -> auto {
             return fmtu::detail::make_args_tuple(fmtu::detail::check_arg(reflect::get<Is>(t))...);
         }(std::make_index_sequence<reflect::size<T>()>{}) };
 
         static constexpr auto fmt{ fmtu::detail::class_format<Info>() };
         return std::apply([&ctx](const auto&... args) -> Ctx::iterator {
             return std::format_to(ctx.out(), fmt, args...);
-        }, args);
+        }, args_tuple);
     }
 };
 
@@ -988,7 +1044,7 @@ struct std::formatter<T>
     auto format(T t, Ctx& ctx) const -> Ctx::iterator
     {
         if (fmt_opts.verbose) {
-            return std::format_to(ctx.out(), "{}::{}", reflect::type_name(t), reflect::enum_name(t));
+            return std::format_to(ctx.out(), "{}::{}", fmtu::detail::type_name<T>(), reflect::enum_name(t));
         }
         return std::format_to(ctx.out(), "{}", reflect::enum_name(t));
     }

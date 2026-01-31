@@ -13,7 +13,7 @@ target_link_libraries(
     PRIVATE
     format_utils::format_utils
     format_utils::compiler_warnings
-    stdc++exp
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:stdc++exp>
 )
 
 target_compile_features(

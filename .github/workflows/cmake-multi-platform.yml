@@ -1,0 +1,86 @@
+name: Multi-Platform CI (Presets)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: ${{ matrix.os }} - ${{ matrix.preset }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # --- Linux ---
+          - os: ubuntu-latest
+            preset: gcc-release
+          - os: ubuntu-latest
+            preset: clang-release-linux
+          - os: ubuntu-latest
+            preset: tidy-linux
+          # --- Windows ---
+          - os: windows-latest
+            preset: msvc-release
+          - os: windows-latest
+            preset: gcc-release
+          - os: windows-latest
+            preset: clang-release-mingw
+          - os: windows-latest
+            preset: tidy-mingw
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # --- Linux Dependencies ---
+    - name: Install Dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build software-properties-common wget
+
+    - name: Install GCC 14 (Linux)
+      if: runner.os == 'Linux' && matrix.preset == 'gcc-release'
+      run: |
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        sudo apt-get update
+        sudo apt-get install -y gcc-14 g++-14
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
+        sudo update-alternatives --set gcc /usr/bin/gcc-14
+        echo "CC=gcc-14" >> $GITHUB_ENV
+        echo "CXX=g++-14" >> $GITHUB_ENV
+
+    - name: Install Clang 19 (Linux)
+      if: runner.os == 'Linux' && (matrix.preset == 'clang-release-linux' || matrix.preset == 'tidy-linux')
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 19
+        sudo apt-get install -y clang-tidy-19 libc++-19-dev libc++abi-19-dev
+        sudo ln -sf /usr/bin/clang-tidy-19 /usr/bin/clang-tidy
+        echo "CC=clang-19" >> $GITHUB_ENV
+        echo "CXX=clang++-19" >> $GITHUB_ENV
+
+    # --- Windows Dependencies ---
+    - name: Set up MSVC Environment (Windows)
+      if: runner.os == 'Windows' && matrix.preset == 'msvc-release'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    # --- Configure & Build ---
+    - name: Configure without Glaze
+      if: matrix.preset == 'msvc-release'
+      run: cmake --preset ${{ matrix.preset }} -DFMTU_ENABLE_JSON=OFF -DFMTU_ENABLE_YAML=OFF -DFMTU_ENABLE_TOML=OFF
+
+    - name: Configure with Glaze
+      if: matrix.preset != 'msvc-release'
+      run: cmake --preset ${{ matrix.preset }} -DFMTU_ENABLE_JSON=ON -DFMTU_ENABLE_YAML=ON -DFMTU_ENABLE_TOML=ON
+
+    - name: Build
+      run: cmake --build --preset ${{ matrix.preset }}
+
+    - name: Test
+      if: matrix.preset != 'tidy-linux' && matrix.preset != 'tidy-mingw'
+      run: ctest --preset ${{ matrix.preset }} --output-on-failure

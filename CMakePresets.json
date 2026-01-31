@@ -53,8 +53,7 @@
             "description": "Build with debug symbols using Clang",
             "inherits": "debug",
             "cacheVariables": {
-                "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32"
+                "CMAKE_CXX_COMPILER": "clang++"
             }
         },
         {
@@ -63,15 +62,79 @@
             "description": "Build for release using Clang",
             "inherits": "release",
             "cacheVariables": {
-                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "msvc-debug",
+            "displayName": "MSVC Debug",
+            "description": "Build with debug symbols using MSVC",
+            "inherits": "debug",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "cl"
+            }
+        },
+        {
+            "name": "msvc-release",
+            "displayName": "MSVC Release",
+            "description": "Build for release using MSVC",
+            "inherits": "release",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "cl"
+            }
+        },
+        {
+            "name": "clang-debug-linux",
+            "displayName": "Clang Debug (Linux)",
+            "description": "Build with debug symbols using Clang (libc++)",
+            "inherits": "clang-debug",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-stdlib=libc++"
+            }
+        },
+        {
+            "name": "clang-release-linux",
+            "displayName": "Clang Release (Linux)",
+            "description": "Build for release using Clang (libc++)",
+            "inherits": "clang-release",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-stdlib=libc++"
+            }
+        },
+        {
+            "name": "clang-debug-mingw",
+            "displayName": "Clang Debug (MinGW)",
+            "description": "Build with debug symbols using Clang (MinGW target)",
+            "inherits": "clang-debug",
+            "cacheVariables": {
                 "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32"
             }
         },
         {
-            "name": "tidy",
-            "displayName": "Clang Tidy (Debug)",
-            "description": "Build with debug symbols and Clang-Tidy enabled",
-            "inherits": "clang-debug",
+            "name": "clang-release-mingw",
+            "displayName": "Clang Release (MinGW)",
+            "description": "Build for release using Clang (MinGW target)",
+            "inherits": "clang-release",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32"
+            }
+        },
+        {
+            "name": "tidy-linux",
+            "displayName": "Clang Tidy (Linux)",
+            "description": "Build with debug symbols and Clang-Tidy enabled (Linux)",
+            "inherits": "clang-debug-linux",
+            "cacheVariables": {
+                "ENABLE_CLANG_TIDY": "ON",
+                "BUILD_SAMPLES": "ON",
+                "BUILD_TESTS": "OFF"
+            }
+        },
+        {
+            "name": "tidy-mingw",
+            "displayName": "Clang Tidy (MinGW)",
+            "description": "Build with debug symbols and Clang-Tidy enabled (MinGW)",
+            "inherits": "clang-debug-mingw",
             "cacheVariables": {
                 "ENABLE_CLANG_TIDY": "ON",
                 "BUILD_SAMPLES": "ON",
@@ -105,8 +168,36 @@
             "configurePreset": "clang-release"
         },
         {
-            "name": "tidy",
-            "configurePreset": "tidy"
+            "name": "msvc-debug",
+            "configurePreset": "msvc-debug"
+        },
+        {
+            "name": "msvc-release",
+            "configurePreset": "msvc-release"
+        },
+        {
+            "name": "clang-debug-linux",
+            "configurePreset": "clang-debug-linux"
+        },
+        {
+            "name": "clang-release-linux",
+            "configurePreset": "clang-release-linux"
+        },
+        {
+            "name": "clang-debug-mingw",
+            "configurePreset": "clang-debug-mingw"
+        },
+        {
+            "name": "clang-release-mingw",
+            "configurePreset": "clang-release-mingw"
+        },
+        {
+            "name": "tidy-linux",
+            "configurePreset": "tidy-linux"
+        },
+        {
+            "name": "tidy-mingw",
+            "configurePreset": "tidy-mingw"
         }
     ],
     "testPresets": [
@@ -133,6 +224,30 @@
         {
             "name": "clang-release",
             "configurePreset": "clang-release"
+        },
+        {
+            "name": "msvc-debug",
+            "configurePreset": "msvc-debug"
+        },
+        {
+            "name": "msvc-release",
+            "configurePreset": "msvc-release"
+        },
+        {
+            "name": "clang-debug-linux",
+            "configurePreset": "clang-debug-linux"
+        },
+        {
+            "name": "clang-release-linux",
+            "configurePreset": "clang-release-linux"
+        },
+        {
+            "name": "clang-debug-mingw",
+            "configurePreset": "clang-debug-mingw"
+        },
+        {
+            "name": "clang-release-mingw",
+            "configurePreset": "clang-release-mingw"
         }
     ]
 }
