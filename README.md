@@ -250,7 +250,19 @@ int main()
 
 ## Build Instructions
 
-To build the library, samples, and tests:
+### Available CMake Presets
+
+| Preset Name | Description | Compiler |
+| :--- | :--- | :--- |
+| `debug` / `release` | System default compiler | Default |
+| `gcc-debug` / `gcc-release` | Build using GCC | `g++` |
+| `clang-debug` / `clang-release` | Build using Clang | `clang++` |
+| `msvc-debug` / `msvc-release` | Build using MSVC | `cl` |
+| `clang-debug-linux` / `clang-release-linux` | Build using Clang with libc++ | `clang++` (`-stdlib=libc++`) |
+| `clang-debug-mingw` / `clang-release-mingw` | Build using Clang for MinGW | `clang++` (MinGW target) |
+| `tidy-linux` / `tidy-mingw` | Static analysis with Clang-Tidy | `clang-tidy` |
+
+### Build the library, samples, and tests:
 
 ```bash
 # cmake --preset <compiler>-<build_type>-<platform>
@@ -272,7 +284,7 @@ Run tests:
 ctest --preset clang-release-linux
 ```
 
-To lint the project:
+### Lint the project:
 
 ```bash
 # cmake --preset tidy-<platform>
@@ -282,7 +294,7 @@ cmake --preset tidy-linux
 cmake --build --preset tidy-linux --clean-first
 ```
 
-## Configuration Options
+### Configuration Options
 
 | Option | Description | Default |
 | :--- | :--- | :--- |
