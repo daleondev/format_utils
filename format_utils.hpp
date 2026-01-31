@@ -55,7 +55,7 @@ namespace fmtu
         struct FixedVector
         {
             std::array<T, Capacity> data{};
-            size_t size{ 0uz };
+            size_t size{ 0UZ };
 
             constexpr FixedVector() = default;
 
@@ -102,7 +102,7 @@ namespace fmtu
         struct FixedMap
         {
             std::array<std::pair<Key, Value>, Capacity> data{};
-            size_t size{ 0uz };
+            size_t size{ 0UZ };
 
             constexpr FixedMap() = default;
 
@@ -421,12 +421,12 @@ namespace fmtu
         template<FormatInfo Info>
         consteval auto class_format_size() -> size_t
         {
-            auto size{ 0uz };
+            auto size{ 0UZ };
             size += 2;                 // "[ "
             size += Info::NAME.size(); // "<class>"
             size += 5;                 // ": {{ "
 
-            for (auto i{ 0uz }; i < Info::numMembers(); ++i) {
+            for (auto i{ 0UZ }; i < Info::numMembers(); ++i) {
                 size += Info::MEMBER_NAMES[i].size(); // "<member>"
                 size += 4;                            // ": {}"
                 if (i < Info::numMembers() - 1) {
@@ -454,7 +454,7 @@ namespace fmtu
             append(Info::NAME);
             append(": {{ ");
 
-            for (auto i{ 0uz }; i < Info::numMembers(); ++i) {
+            for (auto i{ 0UZ }; i < Info::numMembers(); ++i) {
                 append(Info::MEMBER_NAMES[i]);
                 append(": {}");
                 if (i < Info::numMembers() - 1) {
@@ -471,7 +471,7 @@ namespace fmtu
         template<FormatInfo Info, size_t Level = 0>
         consteval auto class_pretty_format_size() -> size_t
         {
-            auto size{ 0uz };
+            auto size{ 0UZ };
             if constexpr (Level == 0) {
                 size += Info::NAME.size(); // "<class>"
                 size += 5;                 // ": {{\n"
@@ -536,7 +536,7 @@ namespace fmtu
                     constexpr size_t I = i;
                     using MemberType = std::tuple_element_t<I, typename Info::MemberTypes>;
 
-                    for (auto i{ 0uz }; i < (Level + 1); ++i) {
+                    for (auto i{ 0UZ }; i < (Level + 1); ++i) {
                         append(PRETTY_INDENT);
                     }
                     append(Info::MEMBER_NAMES[I]);
@@ -560,7 +560,7 @@ namespace fmtu
                 }(std::integral_constant<size_t, Is>{}), ...);
             }(std::make_index_sequence<Info::numMembers()>{});
 
-            for (auto i{ 0uz }; i < Level; ++i) {
+            for (auto i{ 0UZ }; i < Level; ++i) {
                 append(PRETTY_INDENT);
             }
             append("}}");

@@ -2,6 +2,8 @@
 
 #include <print>
 
+// NOLINTBEGIN
+
 // ==========================================
 // 1. Aggregates (Automatic Reflection)
 // ==========================================
@@ -150,3 +152,5 @@ int main()
 
     return 0;
 }
+
+// NOLINTEND

@@ -70,6 +70,15 @@
                 "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32",
                 "CMAKE_C_FLAGS": "--target=x86_64-w64-mingw32"
             }
+        },
+        {
+            "name": "tidy",
+            "displayName": "Clang Tidy (Debug)",
+            "description": "Build with debug symbols and Clang-Tidy enabled",
+            "inherits": "clang-debug",
+            "cacheVariables": {
+                "ENABLE_CLANG_TIDY": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -96,6 +105,10 @@
         {
             "name": "clang-release",
             "configurePreset": "clang-release"
+        },
+        {
+            "name": "tidy",
+            "configurePreset": "tidy"
         }
     ],
     "testPresets": [

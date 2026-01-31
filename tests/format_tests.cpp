@@ -1,5 +1,7 @@
 #include "format_utils.hpp"
 
+// NOLINTBEGIN
+
 #include <gtest/gtest.h>
 
 int main(int argc, char* argv[])
@@ -290,3 +292,5 @@ name = "TestObj")";
     EXPECT_EQ(result, expected);
 }
 #endif
+
+// NOLINTEND

@@ -10,6 +10,9 @@ option(FMTU_ENABLE_JSON "Enable JSON support." OFF)
 option(FMTU_ENABLE_YAML "Enable YAML support." OFF)
 option(FMTU_ENABLE_TOML "Enable TOML support." OFF)
 
+option(BUILD_SAMPLES "Build the sample executables." ON)
+option(BUILD_TESTS "Build the tests." ON)
+
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/deps.cmake)
 
 add_library(format_utils INTERFACE)
@@ -53,12 +56,21 @@ target_compile_options(
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
-option(BUILD_SAMPLES "Build the sample executables." ON)
+option(ENABLE_CLANG_TIDY "Enable clang-tidy analysis during build" OFF)
+if(ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+    if(CLANG_TIDY_EXE)
+        message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-extra-arg=-Wno-unknown-warning-option")
+    else()
+        message(WARNING "clang-tidy not found, disabling ENABLE_CLANG_TIDY")
+    endif()
+endif()
+
 if(BUILD_SAMPLES)
     add_subdirectory(samples)
 endif()
 
-option(BUILD_TESTS "Build the tests." ON)
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
