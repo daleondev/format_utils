@@ -668,7 +668,7 @@ namespace fmtu
         static constexpr std::array GLAZE_FMT_SPECS{ FmtSpecs::Json, FmtSpecs::Yaml, FmtSpecs::Toml };
 
 #ifdef FMTU_ENABLE_GLAZE
-        enum class GlazeFormat : uint32_t
+        enum class GlazeFormat : uint32_t // NOLINT(performance-enum-size)
         {
             Json = glz::JSON,
             Yaml = glz::YAML,
@@ -676,19 +676,19 @@ namespace fmtu
         };
 
         template<typename T, GlazeFormat Fmt>
-        consteval bool is_type_glaze_serializable();
+        consteval auto is_type_glaze_serializable() -> bool;
 
         template<FormatInfo Info, GlazeFormat Fmt>
-        consteval bool is_info_glaze_serializable()
+        consteval auto is_info_glaze_serializable() -> bool
         {
             using MemberTypes = typename Info::MemberTypes;
-            return []<size_t... Is>(std::index_sequence<Is...>) {
+            return []<size_t... Is>(std::index_sequence<Is...>) -> bool {
                 return (is_type_glaze_serializable<std::tuple_element_t<Is, MemberTypes>, Fmt>() && ...);
             }(std::make_index_sequence<Info::numMembers()>{});
         }
 
         template<typename T, GlazeFormat Fmt>
-        consteval bool is_type_glaze_serializable()
+        consteval auto is_type_glaze_serializable() -> bool
         {
             if constexpr (HasAdapter<T>) {
                 return is_info_glaze_serializable<AdapterInfo<T>, Fmt>();
@@ -719,9 +719,10 @@ namespace fmtu
         struct GlazeAdapter
         {
             using Fields = typename Adapter<T>::Fields;
-            static constexpr auto value = []<size_t... Is>(std::index_sequence<Is...>) {
+            // NOLINTNEXTLINE(readability-identifier-naming)
+            static constexpr auto value = []<size_t... Is>(std::index_sequence<Is...>) -> auto {
                 return std::apply(
-                  [](auto&&... args) { return glz::object(std::forward<decltype(args)>(args)...); },
+                  [](auto&&... args) -> auto { return glz::object(std::forward<decltype(args)>(args)...); },
                   std::tuple_cat(std::make_tuple(std::tuple_element_t<Is, Fields>::NAME,
                                                  glaze_field_value<std::tuple_element_t<Is, Fields>>())...));
             }(std::make_index_sequence<std::tuple_size_v<Fields>>{});

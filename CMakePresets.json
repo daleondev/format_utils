@@ -74,6 +74,7 @@
             "inherits": "clang-debug",
             "cacheVariables": {
                 "ENABLE_CLANG_TIDY": "ON",
+                "BUILD_SAMPLES": "ON",
                 "BUILD_TESTS": "OFF"
             }
         }
