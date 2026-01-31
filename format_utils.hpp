@@ -10,11 +10,7 @@
 #include <glaze/toml.hpp>
 #endif
 
-#pragma push_macro("NTEST")
-#undef NTEST
-#define NTEST
 #include <reflect>
-#pragma pop_macro("NTEST")
 
 #include <algorithm>
 #include <array>
@@ -229,18 +225,18 @@ namespace fmtu
               qualified_type_name.substr(0, qualified_type_name.find_first_of("<"sv, 1));
             constexpr std::string_view type_name =
               tmp_type_name.substr(tmp_type_name.find_last_of("::"sv) + 1);
-            static_assert(std::size(type_name) > 0u);
+            static_assert(std::size(type_name) > 0U);
+
             if (std::is_constant_evaluated()) {
                 return type_name;
             }
-            else {
-                return [&] -> std::string_view {
-                    static constexpr const auto name =
-                      reflect::fixed_string<std::remove_cvref_t<decltype(type_name[0])>,
-                                            std::size(type_name)>{ std::data(type_name) };
-                    return std::string_view{ name };
-                }();
-            }
+            return [&] -> std::string_view {
+                static constexpr const auto name =
+                  reflect::fixed_string<std::remove_cvref_t<decltype(type_name[0])>, std::size(type_name)>{
+                      std::data(type_name)
+                  };
+                return std::string_view{ name };
+            }();
         }
 
         template<typename First, typename Second, size_t N>
