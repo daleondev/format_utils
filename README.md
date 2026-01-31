@@ -71,8 +71,8 @@ int main()
     Config cfg{ 101, "SimulationConfig", { 0.5, 1.2, 3.14 }, { 1920, 1080 }, true };
 
     std::println("{}", cfg);
-    // Output: [ Config: { id: 101, name: SimulationConfig, values: [0.5, 1.2, 3.14], resolution: [ Point: {
-    // x: 1920, y: 1080 } ], is_active: true } ]
+    // Output: [ Config: { id: 101, name: SimulationConfig, values: [0.5, 1.2, 3.14], 
+    // resolution: [ Point: { x: 1920, y: 1080 } ], is_active: true } ]
 
     std::println("{:p}", cfg);
     /* Output:
@@ -111,7 +111,6 @@ class User
     std::string m_role;
 };
 
-// Register the adapter
 template<>
 struct fmtu::Adapter<User>
 {
@@ -254,18 +253,33 @@ int main()
 To build the library, samples, and tests:
 
 ```bash
-cmake --preset debug
-cmake --build build --preset debug
+# cmake --preset <compiler>-<build_type>-<platform>
+cmake --preset clang-release-linux
+
+# cmake --build --preset <compiler>-<build_type>-<platform>
+cmake --build --preset clang-release-linux
 ```
 
 Run the sample:
 ```bash
-./build/Debug/samples/format_sample
+# ./build/<compiler>-<build_type>-<platform>/samples/format_sample
+./build/clang-release-linux/samples/format_sample
 ```
 
 Run tests:
 ```bash
-./build/Debug/tests/format_tests
+# ctest --preset <compiler>-<build_type>-<platform>
+ctest --preset clang-release-linux
+```
+
+To lint the project:
+
+```bash
+# cmake --preset tidy-<platform>
+cmake --preset tidy-linux
+
+# cmake --build --preset tidy-<platform>
+cmake --build --preset tidy-linux --clean-first
 ```
 
 ## Configuration Options
@@ -283,12 +297,12 @@ Run tests:
 This library is header-only and requires a C++23 compliant compiler. It is continuously tested on the following platforms:
 
 - **Linux (Ubuntu)**:
-  - GCC 14+
-  - Clang 19+
+  - GCC 14.2
+  - Clang 19.1
 - **Windows**:
-  - MSVC 19.36+ (Visual Studio 2022)
-  - GCC (MinGW-w64)
-  - Clang (MinGW-w64)
+  - MSVC 19.44 (Visual Studio 2022)
+  - GCC 15.2 (MinGW-w64)
+  - Clang 20.1 (MinGW-w64)
 
 ## Acknowledgements
 
