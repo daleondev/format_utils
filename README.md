@@ -227,3 +227,5 @@ This library is header-only and requires a C++23 compliant compiler. It is conti
 - **[reflect](https://github.com/qlibs/reflect)**: Powerful C++20 static reflection library used for aggregate and enum metadata.
 - **[Glaze](https://github.com/stephenberry/glaze)**: Extremely fast C++ library for JSON, YAML, and TOML serialization.
 - **[Googletest](https://github.com/google/googletest)**: Industrial-strength testing framework.
+
+For third-party license information, please see [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
