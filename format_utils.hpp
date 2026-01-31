@@ -114,13 +114,13 @@ namespace fmtu
                 std::ranges::move(arr | std::views::take(size), data.begin());
             }
 
-            constexpr void insert(this auto& self, std::pair<Key, Value> newElement)
+            constexpr void insert(this auto& self, std::pair<Key, Value> new_element)
             {
                 auto it{ std::ranges::find_if(
-                  self, [&newElement](const auto& element) { return element.first == newElement.first; }) };
+                  self, [&new_element](const auto& element) { return element.first == new_element.first; }) };
 
                 if (it != self.end()) {
-                    it->second = std::move(newElement.second);
+                    it->second = std::move(new_element.second);
                     return;
                 }
 
@@ -128,7 +128,7 @@ namespace fmtu
                     throw std::out_of_range("Map is full!");
                 }
 
-                self.data[self.size++] = std::move(newElement);
+                self.data[self.size++] = std::move(new_element);
             }
 
             constexpr auto at(this const auto& self, const Key& key) -> std::optional<Value>
@@ -225,6 +225,20 @@ namespace fmtu
             requires !std::is_aggregate_v<std::remove_cvref_t<T>>;
             requires std::formattable<typename std::remove_cvref_t<T>::element_type, char>;
         };
+
+        template<typename T>
+        struct is_array : std::false_type // NOLINT(readability-identifier-naming)
+        {
+        };
+
+        template<typename T, size_t N>
+        struct is_array<std::array<T, N>> : std::true_type // NOLINT(readability-identifier-naming)
+        {
+        };
+
+        template<typename A, typename T>
+        concept ArrayOf = is_array<std::remove_cvref_t<A>>::value &&
+                          std::convertible_to<typename std::remove_cvref_t<A>::value_type, T>;
 
         // ---------- Enum Reflection ----------
 
@@ -396,20 +410,6 @@ namespace fmtu
         // ---------- Formatting ----------
 
         template<typename T>
-        struct is_array : std::false_type
-        {
-        };
-
-        template<typename T, size_t N>
-        struct is_array<std::array<T, N>> : std::true_type
-        {
-        };
-
-        template<typename A, typename T>
-        concept ArrayOf = is_array<std::remove_cvref_t<A>>::value &&
-                          std::convertible_to<typename std::remove_cvref_t<A>::value_type, T>;
-
-        template<typename T>
         concept FormatInfo = requires {
             typename T::Type;
             { T::NAME } -> std::convertible_to<std::string_view>;
@@ -482,11 +482,10 @@ namespace fmtu
 
             [&]<size_t... Is>(std::index_sequence<Is...>) {
                 ([&](auto i) {
-                    constexpr size_t I = i;
-                    using MemberType = std::tuple_element_t<I, typename Info::MemberTypes>;
+                    using MemberType = std::tuple_element_t<i, typename Info::MemberTypes>;
 
                     size += (Level + 1) * PRETTY_INDENT.size();
-                    size += Info::MEMBER_NAMES[I].size();
+                    size += Info::MEMBER_NAMES[i].size();
                     if constexpr (HasAdapter<MemberType>) {
                         size += 2; // ": "
                         size += class_pretty_format_size<AdapterInfo<MemberType>, Level + 1>();
@@ -498,7 +497,7 @@ namespace fmtu
                     else {
                         size += 4; // ": {}"
                     }
-                    if constexpr (I < Info::numMembers() - 1) {
+                    if constexpr (i < Info::numMembers() - 1) {
                         size += 1; // ","
                     }
                     size += 1; // "\n"
@@ -533,13 +532,12 @@ namespace fmtu
 
             [&]<size_t... Is>(std::index_sequence<Is...>) {
                 ([&](auto i) {
-                    constexpr size_t I = i;
-                    using MemberType = std::tuple_element_t<I, typename Info::MemberTypes>;
+                    using MemberType = std::tuple_element_t<i, typename Info::MemberTypes>;
 
                     for (auto i{ 0UZ }; i < (Level + 1); ++i) {
                         append(PRETTY_INDENT);
                     }
-                    append(Info::MEMBER_NAMES[I]);
+                    append(Info::MEMBER_NAMES[i]);
 
                     if constexpr (HasAdapter<MemberType>) {
                         append(": ");
@@ -553,7 +551,7 @@ namespace fmtu
                         append(": {}");
                     }
 
-                    if constexpr (I < Info::numMembers() - 1) {
+                    if constexpr (i < Info::numMembers() - 1) {
                         append(",");
                     }
                     append("\n");
@@ -736,7 +734,7 @@ namespace fmtu
             bool toml;
 
             constexpr bool operator==(const FmtOpts&) const = default;
-            constexpr auto has_opt() const -> bool { return *this != FmtOpts{}; }
+            constexpr auto hasOpt() const -> bool { return *this != FmtOpts{}; }
         };
 
         // clang-format off
@@ -882,7 +880,7 @@ struct std::formatter<T>
     template<typename Ctx>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
-        if (fmt_opts.has_opt()) {
+        if (fmt_opts.hasOpt()) {
             if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmt_opts) }; it.has_value()) {
                 return it.value();
             }
@@ -945,7 +943,7 @@ struct std::formatter<T>
     template<typename Ctx>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
-        if (fmt_opts.has_opt()) {
+        if (fmt_opts.hasOpt()) {
             if (auto it{ fmtu::detail::handle_class_opts<Info>(ctx, t, fmt_opts) }; it.has_value()) {
                 return it.value();
             }
