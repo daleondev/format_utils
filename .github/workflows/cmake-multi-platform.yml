@@ -80,7 +80,7 @@ jobs:
 
     - name: Build without Glaze
       if: runner.os == 'Windows'
-      run: cmake --build --preset ${{ matrix.preset }}
+      run: cmake --build --preset ${{ matrix.preset }} DFMTU_ENABLE_JSON=OFF DFMTU_ENABLE_YAML=OFF DFMTU_ENABLE_TOML=OFF
 
     - name: Test
       if: matrix.preset != 'tidy-linux' && matrix.preset != 'tidy-mingw'
