@@ -65,10 +65,6 @@ jobs:
         echo "CXX=clang++-19" >> $GITHUB_ENV
 
     # --- Windows Dependencies ---
-    - name: Install Dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: choco install ninja
-
     - name: Set up MSVC Environment (Windows)
       if: runner.os == 'Windows' && matrix.preset == 'msvc-release'
       uses: ilammy/msvc-dev-cmd@v1
