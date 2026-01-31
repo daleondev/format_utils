@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        preset: [gcc-release, clang-release]
+        preset: [gcc-release, clang-release, tidy]
 
     steps:
     - uses: actions/checkout@v4
