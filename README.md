@@ -51,12 +51,14 @@ Include the header:
 format_utils automatically reflects aggregate structures.
 
 ```cpp
-struct Point {
+struct Point
+{
     int x;
     int y;
 };
 
-struct Config {
+struct Config
+{
     int id;
     std::string name;
     std::vector<double> values;
@@ -64,15 +66,14 @@ struct Config {
     bool is_active;
 };
 
-int main() {
+int main()
+{
     Config cfg{ 101, "SimulationConfig", { 0.5, 1.2, 3.14 }, { 1920, 1080 }, true };
-    
-    // Default format (Compact)
-    std::println("{}", cfg);
-    // Output: [ Config: { id: 101, name: SimulationConfig, values: [0.5, 1.2, 3.14], 
-    // resolution: [ Point: { x: 1920, y: 1080 } ], is_active: true } ]
 
-    // Pretty format (Indented) - {:p}
+    std::println("{}", cfg);
+    // Output: [ Config: { id: 101, name: SimulationConfig, values: [0.5, 1.2, 3.14], resolution: [ Point: {
+    // x: 1920, y: 1080 } ], is_active: true } ]
+
     std::println("{:p}", cfg);
     /* Output:
     Config: {
@@ -94,28 +95,33 @@ int main() {
 For classes with private members, define a `fmtu::Adapter` specialization.
 
 ```cpp
-class User {
-public:
-    User(std::string name, std::string role) : m_name(name), m_role(role) {}
+class User
+{
+  public:
+    User(std::string name, std::string role)
+      : m_name(name)
+      , m_role(role)
+    {
+    }
     const std::string& getName() const { return m_name; }
     const std::string& getRole() const { return m_role; }
 
-private:
+  private:
     std::string m_name;
     std::string m_role;
 };
 
 // Register the adapter
 template<>
-struct fmtu::Adapter<User> {
-    using Fields = std::tuple<
-        fmtu::Field<"name", &User::getName>,
-        fmtu::Field<"role", &User::getRole>
-    >;
+struct fmtu::Adapter<User>
+{
+    using Fields = std::tuple<fmtu::Field<"name", &User::getName>, fmtu::Field<"role", &User::getRole>>;
 };
 
-int main() {
+int main()
+{
     User user("Alice", "Admin");
+
     std::println("{}", user);
     // Output: [ User: { name: Alice, role: Admin } ]
 }
@@ -126,16 +132,22 @@ int main() {
 Scoped enums are automatically formatted by their name.
 
 ```cpp
-enum class Status { Idle, Processing, Completed };
+enum class Status
+{
+    Idle,
+    Processing,
+    Completed
+};
 
-int main() {
+int main()
+{
     Status s = Status::Processing;
-    
-    // Default
-    std::println("{}", s);   // Output: Processing
-    
-    // Verbose - {:v}
-    std::println("{:v}", s); // Output: Status::Processing
+
+    std::println("{}", s); 
+    // Output: Processing
+
+    std::println("{:v}", s); 
+    // Output: Status::Processing
 }
 ```
 
@@ -144,15 +156,29 @@ int main() {
 FormatUtils handles `nullptr`, `std::optional`, and smart pointers gracefully.
 
 ```cpp
-std::optional<int> opt_val = 123;
-std::println("{}", opt_val); // Output: [ 123 ]
+#include <memory>
+#include <optional>
 
-std::optional<int> empty_opt;
-std::println("{}", empty_opt); // Output: [ null ]
+struct Point
+{
+    int x;
+    int y;
+};
 
-auto ptr = std::make_unique<Point>(10, 20);
-std::println("{}", ptr); 
-// Output: [ (0x...) -> [ Point: { x: 10, y: 20 } ] ]
+int main()
+{
+    std::optional<int> opt_val = 123;
+    std::println("{}", opt_val); 
+    // Output: [ 123 ]
+
+    std::optional<int> empty_opt;
+    std::println("{}", empty_opt); 
+    // Output: [ null ]
+
+    auto ptr = std::make_unique<Point>(10, 20);
+    std::println("{}", ptr);
+    // Output: [ (0x1d43c09c1f0) -> [ Point: { x: 10, y: 20 } ] ]
+}
 ```
 
 ### 5. Serialization (JSON / TOML / YAML)
@@ -162,21 +188,65 @@ If enabled (via CMake options `FMTU_ENABLE_JSON`, etc.), you can format objects 
 **Format Specifiers:**
 *   `{:j}` - Compact JSON
 *   `{:pj}` - Pretty JSON
+*   `{:y}` - YAML (experimental)
 *   `{:t}` - TOML
-*   `{:y}` - YAML (Experimental)
 
 ```cpp
-Config cfg{ ... };
+#include <memory>
+#include <optional>
 
-// JSON
-std::println("{:j}", cfg);
-// Output: {"id":101,"name":"SimulationConfig",...}
+struct Point
+{
+    int x;
+    int y;
+};
 
-// Pretty JSON
-std::println("{:pj}", cfg);
+struct Config
+{
+    int id;
+    std::string name;
+    std::vector<double> values;
+    Point resolution;
+    bool is_active;
+};
 
-// TOML
-std::println("{:t}", cfg);
+int main()
+{
+    Config cfg{ 101, "SimulationConfig", { 0.5, 1.2, 3.14 }, { 1920, 1080 }, true };
+
+    std::println("{:j}", cfg);
+    // Output:
+    // {"id":101,"name":"SimulationConfig","values":[0.5,1.2,3.14],"resolution":{"x":1920,"y":1080},"is_active":true}
+
+    std::println("{:pj}", cfg);
+    /* Output:
+    {
+       "id": 101,
+       "name": "SimulationConfig",
+       "values": [
+          0.5,
+          1.2,
+          3.14
+       ],
+       "resolution": {
+          "x": 1920,
+          "y": 1080
+       },
+       "is_active": true
+    }
+    */
+
+    std::println("{:t}", cfg);
+    /* Output:
+    id = 101
+    name = "SimulationConfig"
+    values = [0.5, 1.2, 3.14]
+    is_active = true
+    [resolution]
+    x = 1920
+    y = 1080
+    */
+}
 ```
 
 ## Build Instructions
@@ -202,8 +272,8 @@ Run tests:
 
 | Option | Description | Default |
 | :--- | :--- | :--- |
-| `FMTU_ENABLE_JSON` | Enable JSON support via Glaze | `ON` |
-| `FMTU_ENABLE_TOML` | Enable TOML support via Glaze | `ON` |
+| `FMTU_ENABLE_JSON` | Enable JSON support via Glaze | `OFF` |
+| `FMTU_ENABLE_TOML` | Enable TOML support via Glaze | `OFF` |
 | `FMTU_ENABLE_YAML` | Enable YAML support via Glaze | `OFF` |
 | `BUILD_SAMPLES` | Build sample executables | `ON` |
 | `BUILD_TESTS` | Build unit tests | `ON` |
