@@ -54,9 +54,7 @@
             "inherits": "debug",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32",
-                "CMAKE_C_FLAGS": "--target=x86_64-w64-mingw32"
+                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32"
             }
         },
         {
@@ -66,9 +64,7 @@
             "inherits": "release",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32",
-                "CMAKE_C_FLAGS": "--target=x86_64-w64-mingw32"
+                "CMAKE_CXX_FLAGS": "--target=x86_64-w64-mingw32"
             }
         },
         {
@@ -77,7 +73,8 @@
             "description": "Build with debug symbols and Clang-Tidy enabled",
             "inherits": "clang-debug",
             "cacheVariables": {
-                "ENABLE_CLANG_TIDY": "ON"
+                "ENABLE_CLANG_TIDY": "ON",
+                "BUILD_TESTS": "OFF"
             }
         }
     ],

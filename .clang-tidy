@@ -1,7 +1,10 @@
 ---
 Checks: >
-  -*,
-  readability-identifier-naming
+  readability-*,
+  -readability-identifier-length,
+  -readability-braces-around-statements,
+  -readability-implicit-bool-conversion
+
 # Checks: >
 #   bugprone-*,
 #   modernize-*,
@@ -9,11 +12,12 @@ Checks: >
 #   readability-*,
 #   cppcoreguidelines-*,
 #   clang-analyzer-*,
-#   -modernize-use-trailing-return-type,
 #   -readability-identifier-length,
-#   -cppcoreguidelines-pro-type-member-init,
 #   -readability-braces-around-statements,
 #   -readability-implicit-bool-conversion
+#   -modernize-use-trailing-return-type,
+#   -modernize-use-nodiscard,
+#   -cppcoreguidelines-pro-bounds-pointer-arithmetic
 
 WarningsAsErrors: ""
 HeaderFilterRegex: 'format_utils\.hpp'

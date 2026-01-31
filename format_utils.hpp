@@ -418,23 +418,25 @@ namespace fmtu
             { T::numMembers() } -> std::convertible_to<size_t>;
         };
 
+        using namespace std::literals;
+
         template<FormatInfo Info>
         consteval auto class_format_size() -> size_t
         {
             auto size{ 0UZ };
-            size += 2;                 // "[ "
-            size += Info::NAME.size(); // "<class>"
-            size += 5;                 // ": {{ "
+            size += "[ "sv.length();
+            size += Info::NAME.size();
+            size += ": {{ "sv.length();
 
             for (auto i{ 0UZ }; i < Info::numMembers(); ++i) {
-                size += Info::MEMBER_NAMES[i].size(); // "<member>"
-                size += 4;                            // ": {}"
+                size += Info::MEMBER_NAMES[i].size();
+                size += ": {}"sv.length();
                 if (i < Info::numMembers() - 1) {
-                    size += 2; // ", "
+                    size += ", "sv.length();
                 }
             }
 
-            size += 5; // " }} ]"
+            size += " }} ]"sv.length();
             return size;
         }
 
@@ -473,11 +475,11 @@ namespace fmtu
         {
             auto size{ 0UZ };
             if constexpr (Level == 0) {
-                size += Info::NAME.size(); // "<class>"
-                size += 5;                 // ": {{\n"
+                size += Info::NAME.size();
+                size += ": {{\n"sv.length();
             }
             else {
-                size += 3; // "{{\n"
+                size += "{{\n"sv.length();
             }
 
             [&]<size_t... Is>(std::index_sequence<Is...>) {
@@ -487,25 +489,25 @@ namespace fmtu
                     size += (Level + 1) * PRETTY_INDENT.size();
                     size += Info::MEMBER_NAMES[i].size();
                     if constexpr (HasAdapter<MemberType>) {
-                        size += 2; // ": "
+                        size += ": "sv.length();
                         size += class_pretty_format_size<AdapterInfo<MemberType>, Level + 1>();
                     }
                     else if constexpr (Reflectable<MemberType>) {
-                        size += 2; // ": "
+                        size += ": "sv.length();
                         size += class_pretty_format_size<ReflectableInfo<MemberType>, Level + 1>();
                     }
                     else {
-                        size += 4; // ": {}"
+                        size += ": {}"sv.length();
                     }
                     if constexpr (i < Info::numMembers() - 1) {
-                        size += 1; // ","
+                        size += ","sv.length();
                     }
-                    size += 1; // "\n"
+                    size += "\n"sv.length();
                 }(std::integral_constant<size_t, Is>{}), ...);
             }(std::make_index_sequence<Info::numMembers()>{});
 
             size += Level * PRETTY_INDENT.size();
-            size += 2; // "}}"
+            size += "}}"sv.length();
             return size;
             return 0;
         }
