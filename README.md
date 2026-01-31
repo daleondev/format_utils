@@ -1,5 +1,7 @@
 # format_utils
 
+[![Multi-Platform CI (Presets)](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml)
+
 **format_utils** is a modern C++23 header-only library that extends `std::format` with powerful capabilities for automatic reflection, serialization, and formatted output of user-defined types. It seamlessly integrates with `std::format`, making it effortless to print complex data structures, including aggregates, classes with private members, enums, pointers, and optional values.
 
 Key features include:
@@ -205,3 +207,23 @@ Run tests:
 | `FMTU_ENABLE_YAML` | Enable YAML support via Glaze | `OFF` |
 | `BUILD_SAMPLES` | Build sample executables | `ON` |
 | `BUILD_TESTS` | Build unit tests | `ON` |
+
+## Compiler Support
+
+This library is header-only and requires a C++23 compliant compiler. It is continuously tested on the following platforms:
+
+- **Linux (Ubuntu)**:
+  - GCC 14+
+  - Clang 19+
+- **Windows**:
+  - MSVC 19.36+ (Visual Studio 2022)
+  - GCC (MinGW-w64)
+  - Clang (MinGW-w64)
+
+## Acknowledgements
+
+**format_utils** is made possible by these incredible open-source projects:
+
+- **[reflect](https://github.com/qlibs/reflect)**: Powerful C++20 static reflection library used for aggregate and enum metadata.
+- **[Glaze](https://github.com/stephenberry/glaze)**: Extremely fast C++ library for JSON, YAML, and TOML serialization.
+- **[Googletest](https://github.com/google/googletest)**: Industrial-strength testing framework.
