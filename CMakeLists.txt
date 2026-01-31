@@ -52,7 +52,7 @@ add_library(format_utils::compiler_warnings ALIAS format_utils_compiler_warnings
 target_compile_options(
     format_utils_compiler_warnings
     INTERFACE
-    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /constexpr:steps20000000>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wpedantic -Werror>
 )
 
