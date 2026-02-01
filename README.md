@@ -228,6 +228,48 @@ int main()
 }
 ```
 
+### 6. Custom formatting
+
+Custom formatting is possible for classes by either overloading the `operator<<` or defining a `toString()`-method.
+
+```cpp
+struct Point
+{
+    int x;
+    int y;
+};
+
+std::ostream& operator<<(std::ostream& os, const Point& p)
+{
+    return os << "Resolution is " << p.x << "x" << p.y;
+}
+
+struct Config
+{
+    int id;
+    std::string name;
+    std::vector<double> values;
+    Point resolution;
+    bool is_active;
+
+    std::string toString() const
+    {
+        return "Config with id: " + std::to_string(id) + " has " + std::to_string(values.size()) + " values";
+    }
+};
+
+int main()
+{
+    Config cfg{ 101, "SimulationConfig", { 0.5, 1.2, 3.14 }, { 1920, 1080 }, true };
+
+    std::println("{}", cfg);
+    // Output: Config with id: 101 has 3 values
+
+    std::println("{}", cfg.resolution);
+    // Output: Resolution is 1920x1080
+}
+```
+
 ## Installation
 
 ### CMake FetchContent
