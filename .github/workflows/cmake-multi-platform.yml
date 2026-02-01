@@ -30,6 +30,7 @@ jobs:
         with:
           filters: |
             should_build:
+              - '**'
               - '!README.md'
               - '!LICENSE'
               - '!THIRD-PARTY-NOTICES.txt'
