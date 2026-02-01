@@ -175,6 +175,8 @@ jobs:
         with:
           prerelease: ${{ contains(github.ref, 'rc') }}
           generate_release_notes: true
+          draft: true
+          files: format_utils.hpp
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
