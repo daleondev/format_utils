@@ -249,8 +249,6 @@ target_link_libraries(your_target PRIVATE format_utils::format_utils)
 
 ### Available CMake Configuration Options
 
-The following CMake options are available:
-
 | Option | Description | Default |
 | :--- | :--- | :--- |
 | `FMTU_ENABLE_JSON` | Enable JSON support via Glaze | `OFF` |
@@ -261,7 +259,7 @@ The following CMake options are available:
 
 ## Build Instructions
 
-### Build the sample, and tests:
+### Build the sample and tests:
 
 ```bash
 # cmake --preset <compiler>-<build_type>-<platform>
