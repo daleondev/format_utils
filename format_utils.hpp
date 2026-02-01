@@ -50,6 +50,8 @@ namespace fmtu
 
     namespace detail
     {
+        using namespace std::literals;
+
         // ---------- Constexpr data types ----------
 
         template<typename T, size_t Capacity>
@@ -164,36 +166,47 @@ namespace fmtu
             }
         };
 
-        // ---------- Namespace Std ----------
+        // ---------- Helpers ----------
 
-        // clang-format off
         template<typename T>
         consteval auto namespace_name() -> std::string_view
         {
-            using type_name_info = reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
+            using type_name_info =
+              reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
             constexpr std::string_view function_name{
                 reflect::detail::function_name<std::remove_pointer_t<std::remove_cvref_t<T>>>()
             };
-            constexpr std::string_view qualified_type_name{ 
-                function_name.substr(type_name_info::begin, function_name.find(type_name_info::end) - type_name_info::begin) 
-            };
-            constexpr std::string_view tmp_type_name{ 
-                qualified_type_name.substr(0, qualified_type_name.find_first_of('<', 1)) 
-            };
-            constexpr std::string_view namespace_name{ 
-                tmp_type_name.substr(0, tmp_type_name.find_last_of("::") + 1) 
-            };
+
+            constexpr std::string_view qualified_type_name = [&] -> std::string_view {
+                if constexpr (type_name_info::name.contains("struct REFLECT_STRUCT"sv)) {
+                    constexpr std::string_view struct_type =
+                      function_name.substr(type_name_info::name.find("struct REFLECT_STRUCT"sv));
+                    if constexpr (!struct_type.starts_with("struct "sv)) {
+                        if constexpr (!struct_type.starts_with("class "sv)) {
+                            throw std::exception();
+                        }
+                        auto diff{ "struct"sv.length() - "class"sv.length() };
+                        return function_name.substr(type_name_info::begin - diff,
+                                                    function_name.find(type_name_info::end) -
+                                                      type_name_info::begin + diff);
+                    }
+                }
+                return function_name.substr(type_name_info::begin,
+                                            function_name.find(type_name_info::end) - type_name_info::begin);
+            }();
+
+            constexpr std::string_view tmp_type_name{ qualified_type_name.substr(
+              0, qualified_type_name.find_first_of('<', 1)) };
+            constexpr std::string_view namespace_name{ tmp_type_name.substr(
+              0, tmp_type_name.find_last_of("::") + 1) };
             return namespace_name;
         }
-        // clang-format on
 
         template<typename T>
         consteval auto is_std_type() -> bool
         {
             return namespace_name<T>().starts_with("std::");
         }
-
-        // ---------- Helpers ----------
 
         // clang-format off
         // This updated version of reflect::type_name fixes a bug where the distinction between class and
@@ -209,7 +222,6 @@ namespace fmtu
         template<class T>
         constexpr auto type_name() -> std::string_view
         {
-            using namespace std::literals;
             using type_name_info =
               reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
             constexpr std::string_view function_name =
@@ -295,7 +307,8 @@ namespace fmtu
           requires(std::ostream& os, const T& t) {
               { os << t } -> std::convertible_to<std::ostream&>;
           } && !is_std_type<std::remove_cvref_t<T>>() && !std::is_pointer_v<std::remove_cvref_t<T>> &&
-          !std::is_fundamental_v<std::remove_cvref_t<T>> && !std::is_array_v<std::remove_cvref_t<T>>;
+          !std::is_fundamental_v<std::remove_cvref_t<T>> && !std::is_array_v<std::remove_cvref_t<T>> &&
+          !SmartPtr<T>;
 
         template<typename T>
         concept HasToString = std::is_class_v<std::remove_cvref_t<T>> && requires(const T& t) {
@@ -501,8 +514,6 @@ namespace fmtu
             { T::MEMBER_NAMES } -> ArrayOf<std::string_view>;
             { T::numMembers() } -> std::convertible_to<size_t>;
         };
-
-        using namespace std::literals;
 
         template<FormatInfo Info>
         consteval auto class_format_size() -> size_t
