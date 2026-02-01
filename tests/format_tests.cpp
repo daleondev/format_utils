@@ -280,7 +280,7 @@ TEST(FormatTests, JSON_Compact)
 TEST(FormatTests, JSON_Pretty)
 {
     std::string result = std::format("{:pj}", ClassWithAdapter{ 100, "TestObj" });
-    std::string expected = R"({ 
+    std::string expected = R"({
    "id": 100,
    "name": "TestObj"
 })";
