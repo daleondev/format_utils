@@ -20,6 +20,7 @@
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <sstream>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -49,6 +50,8 @@ namespace fmtu
 
     namespace detail
     {
+        using namespace std::literals;
+
         // ---------- Constexpr data types ----------
 
         template<typename T, size_t Capacity>
@@ -163,35 +166,6 @@ namespace fmtu
             }
         };
 
-        // ---------- Namespace Std ----------
-
-        // clang-format off
-        template<typename T>
-        consteval auto namespace_name() -> std::string_view
-        {
-            using type_name_info = reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
-            constexpr std::string_view function_name{
-                reflect::detail::function_name<std::remove_pointer_t<std::remove_cvref_t<T>>>()
-            };
-            constexpr std::string_view qualified_type_name{ 
-                function_name.substr(type_name_info::begin, function_name.find(type_name_info::end) - type_name_info::begin) 
-            };
-            constexpr std::string_view tmp_type_name{ 
-                qualified_type_name.substr(0, qualified_type_name.find_first_of('<', 1)) 
-            };
-            constexpr std::string_view namespace_name{ 
-                tmp_type_name.substr(0, tmp_type_name.find_last_of("::") + 1) 
-            };
-            return namespace_name;
-        }
-        // clang-format on
-
-        template<typename T>
-        consteval auto is_std_type() -> bool
-        {
-            return namespace_name<T>().starts_with("std::");
-        }
-
         // ---------- Helpers ----------
 
         // clang-format off
@@ -208,7 +182,6 @@ namespace fmtu
         template<class T>
         constexpr auto type_name() -> std::string_view
         {
-            using namespace std::literals;
             using type_name_info =
               reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
             constexpr std::string_view function_name =
@@ -222,7 +195,7 @@ namespace fmtu
                         if constexpr (!struct_type.starts_with("class "sv)) {
                             throw std::exception();
                         }
-                        auto diff{ "struct"sv.length() - "class"sv.length() };
+                        auto diff{ std::size("struct"sv) - std::size("class"sv) };
                         return function_name.substr(type_name_info::begin - diff,
                                                     function_name.find(type_name_info::end) -
                                                       type_name_info::begin + diff);
@@ -248,6 +221,46 @@ namespace fmtu
                   };
                 return std::string_view{ name };
             }();
+        }
+
+        template<typename T>
+        consteval auto namespace_name() -> std::string_view
+        {
+            using type_name_info =
+              reflect::detail::type_name_info<std::remove_pointer_t<std::remove_cvref_t<T>>>;
+            constexpr std::string_view function_name{
+                reflect::detail::function_name<std::remove_pointer_t<std::remove_cvref_t<T>>>()
+            };
+
+            constexpr std::string_view qualified_type_name = [&] -> std::string_view {
+                if constexpr (type_name_info::name.contains("struct REFLECT_STRUCT"sv)) {
+                    constexpr std::string_view struct_type =
+                      function_name.substr(type_name_info::name.find("struct REFLECT_STRUCT"sv));
+                    if constexpr (!struct_type.starts_with("struct "sv)) {
+                        if constexpr (!struct_type.starts_with("class "sv)) {
+                            throw std::exception();
+                        }
+                        auto diff{ std::size("struct"sv) - std::size("class"sv) };
+                        return function_name.substr(type_name_info::begin - diff,
+                                                    function_name.find(type_name_info::end) -
+                                                      type_name_info::begin + diff);
+                    }
+                }
+                return function_name.substr(type_name_info::begin,
+                                            function_name.find(type_name_info::end) - type_name_info::begin);
+            }();
+
+            constexpr std::string_view tmp_type_name{ qualified_type_name.substr(
+              0, qualified_type_name.find_first_of('<', 1)) };
+            constexpr std::string_view namespace_name{ tmp_type_name.substr(
+              0, tmp_type_name.find_last_of("::") + 1) };
+            return namespace_name;
+        }
+
+        template<typename T>
+        consteval auto is_std_type() -> bool
+        {
+            return namespace_name<T>().starts_with("std::");
         }
 
         template<typename First, typename Second, size_t N>
@@ -287,6 +300,28 @@ namespace fmtu
             requires !std::is_aggregate_v<std::remove_cvref_t<T>>;
             requires std::formattable<typename std::remove_cvref_t<T>::element_type, char>;
         };
+
+        template<typename T>
+        concept Streamable =
+          std::is_class_v<std::remove_cvref_t<T>> &&
+          requires(std::ostream& os, const T& t) {
+              { os << t } -> std::convertible_to<std::ostream&>;
+          } && !is_std_type<std::remove_cvref_t<T>>() && !std::is_pointer_v<std::remove_cvref_t<T>> &&
+          !std::is_fundamental_v<std::remove_cvref_t<T>> && !std::is_array_v<std::remove_cvref_t<T>> &&
+          !SmartPtr<T>;
+
+        template<typename T>
+        concept HasToString = std::is_class_v<std::remove_cvref_t<T>> && requires(const T& t) {
+            requires(requires {
+                { t.to_string() } -> std::convertible_to<std::string_view>;
+            } || requires {
+                { t.toString() } -> std::convertible_to<std::string_view>;
+            } || requires {
+                { to_string(t) } -> std::convertible_to<std::string_view>;
+            } || requires {
+                { toString(t) } -> std::convertible_to<std::string_view>;
+            });
+        } && !is_std_type<std::remove_cvref_t<T>>();
 
         template<typename T>
         struct is_array : std::false_type // NOLINT(readability-identifier-naming)
@@ -436,7 +471,7 @@ namespace fmtu
         template<typename T>
         concept Reflectable =
           std::is_class_v<std::remove_cvref_t<T>> && std::is_aggregate_v<std::remove_cvref_t<T>> &&
-          !is_std_type<std::remove_cvref_t<T>>() && !HasAdapter<T>;
+          !is_std_type<std::remove_cvref_t<T>>() && !HasAdapter<T> && !Streamable<T> && !HasToString<T>;
 
         template<Reflectable T>
         consteval auto reflect_names()
@@ -480,25 +515,23 @@ namespace fmtu
             { T::numMembers() } -> std::convertible_to<size_t>;
         };
 
-        using namespace std::literals;
-
         template<FormatInfo Info>
         consteval auto class_format_size() -> size_t
         {
             auto size{ 0UZ };
-            size += "[ "sv.length();
+            size += std::size("[ "sv);
             size += Info::NAME.size();
-            size += ": {{ "sv.length();
+            size += std::size(": {{ "sv);
 
             for (auto i{ 0UZ }; i < Info::numMembers(); ++i) {
                 size += Info::MEMBER_NAMES[i].size();
-                size += ": {}"sv.length();
+                size += std::size(": {}"sv);
                 if (i < Info::numMembers() - 1) {
-                    size += ", "sv.length();
+                    size += std::size(", "sv);
                 }
             }
 
-            size += " }} ]"sv.length();
+            size += std::size(" }} ]"sv);
             return size;
         }
 
@@ -538,10 +571,10 @@ namespace fmtu
             auto size{ 0UZ };
             if constexpr (Level == 0) {
                 size += Info::NAME.size();
-                size += ": {{\n"sv.length();
+                size += std::size(": {{\n"sv);
             }
             else {
-                size += "{{\n"sv.length();
+                size += std::size("{{\n"sv);
             }
 
             [&]<size_t... Is>(std::index_sequence<Is...>) -> void {
@@ -551,27 +584,26 @@ namespace fmtu
                     size += (Level + 1) * PRETTY_INDENT.size();
                     size += Info::MEMBER_NAMES[i].size();
                     if constexpr (HasAdapter<MemberType>) {
-                        size += ": "sv.length();
+                        size += std::size(": "sv);
                         size += class_pretty_format_size<AdapterInfo<MemberType>, Level + 1>();
                     }
                     else if constexpr (Reflectable<MemberType>) {
-                        size += ": "sv.length();
+                        size += std::size(": "sv);
                         size += class_pretty_format_size<ReflectableInfo<MemberType>, Level + 1>();
                     }
                     else {
-                        size += ": {}"sv.length();
+                        size += std::size(": {}"sv);
                     }
                     if constexpr (i < Info::numMembers() - 1) {
-                        size += ","sv.length();
+                        size += std::size(","sv);
                     }
-                    size += "\n"sv.length();
+                    size += std::size("\n"sv);
                 }(std::integral_constant<size_t, Is>{}), ...);
             }(std::make_index_sequence<Info::numMembers()>{});
 
             size += Level * PRETTY_INDENT.size();
-            size += "}}"sv.length();
+            size += std::size("}}"sv);
             return size;
-            return 0;
         }
 
         template<FormatInfo Info, size_t Level = 0>
@@ -1093,6 +1125,62 @@ struct std::formatter<T> : std::formatter<typename T::element_type*>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
         return std::formatter<typename T::element_type*>::format(t.get(), ctx);
+    }
+};
+
+template<fmtu::detail::Streamable T>
+    requires(!fmtu::detail::HasAdapter<T>)
+struct std::formatter<T>
+{
+    template<typename Ctx>
+    constexpr auto parse(Ctx& ctx) -> Ctx::iterator
+    {
+        fmtu::detail::FmtOpts fmt_opts{};
+        return fmtu::detail::parse_fmt_opts<fmtu::detail::FmtOpts{}>(ctx, fmt_opts);
+    }
+
+    template<typename Ctx>
+    auto format(T t, Ctx& ctx) const -> Ctx::iterator
+    {
+        std::ostringstream oss;
+        oss << t;
+        return std::format_to(ctx.out(), "{}", oss.str());
+    }
+};
+
+template<fmtu::detail::HasToString T>
+    requires(!fmtu::detail::HasAdapter<T> && !fmtu::detail::Streamable<T>)
+struct std::formatter<T>
+{
+    template<typename Ctx>
+    constexpr auto parse(Ctx& ctx) -> Ctx::iterator
+    {
+        fmtu::detail::FmtOpts fmt_opts{};
+        return fmtu::detail::parse_fmt_opts<fmtu::detail::FmtOpts{}>(ctx, fmt_opts);
+    }
+
+    template<typename Ctx>
+    auto format(T t, Ctx& ctx) const -> Ctx::iterator
+    {
+        if constexpr (requires { std::decay_t<decltype(t)>::to_string(); }) {
+            return std::format_to(ctx.out(), "{}", std::decay_t<decltype(t)>::to_string());
+        }
+        else if constexpr (requires { std::decay_t<decltype(t)>::toString(); }) {
+            return std::format_to(ctx.out(), "{}", std::decay_t<decltype(t)>::toString());
+        }
+        else if constexpr (requires { t.to_string(); }) {
+            return std::format_to(ctx.out(), "{}", t.to_string());
+        }
+        else if constexpr (requires { t.toString(); }) {
+            return std::format_to(ctx.out(), "{}", t.toString());
+        }
+        else if constexpr (requires { to_string(t); }) {
+            return std::format_to(ctx.out(), "{}", to_string(t));
+        }
+        else if constexpr (requires { toString(t); }) {
+            return std::format_to(ctx.out(), "{}", toString(t));
+        }
+        throw std::format_error("Unreachable");
     }
 };
 

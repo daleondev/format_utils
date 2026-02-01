@@ -13,6 +13,7 @@
         },
         {
             "name": "debug",
+            "hidden": true,
             "displayName": "Debug",
             "description": "Build with debug symbols",
             "inherits": "base",
@@ -22,6 +23,7 @@
         },
         {
             "name": "release",
+            "hidden": true,
             "displayName": "Release",
             "description": "Build for release",
             "inherits": "base",
@@ -49,6 +51,7 @@
         },
         {
             "name": "clang-debug",
+            "hidden": true,
             "displayName": "Clang Debug",
             "description": "Build with debug symbols using Clang",
             "inherits": "debug",
@@ -58,29 +61,12 @@
         },
         {
             "name": "clang-release",
+            "hidden": true,
             "displayName": "Clang Release",
             "description": "Build for release using Clang",
             "inherits": "release",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "clang++"
-            }
-        },
-        {
-            "name": "msvc-debug",
-            "displayName": "MSVC Debug",
-            "description": "Build with debug symbols using MSVC",
-            "inherits": "debug",
-            "cacheVariables": {
-                "CMAKE_CXX_COMPILER": "cl"
-            }
-        },
-        {
-            "name": "msvc-release",
-            "displayName": "MSVC Release",
-            "description": "Build for release using MSVC",
-            "inherits": "release",
-            "cacheVariables": {
-                "CMAKE_CXX_COMPILER": "cl"
             }
         },
         {
@@ -120,7 +106,25 @@
             }
         },
         {
-            "name": "tidy-linux",
+            "name": "msvc-debug",
+            "displayName": "MSVC Debug",
+            "description": "Build with debug symbols using MSVC",
+            "inherits": "debug",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "cl"
+            }
+        },
+        {
+            "name": "msvc-release",
+            "displayName": "MSVC Release",
+            "description": "Build for release using MSVC",
+            "inherits": "release",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "cl"
+            }
+        },
+        {
+            "name": "lint-linux",
             "displayName": "Clang Tidy (Linux)",
             "description": "Build with debug symbols and Clang-Tidy enabled (Linux)",
             "inherits": "clang-debug-linux",
@@ -131,7 +135,7 @@
             }
         },
         {
-            "name": "tidy-mingw",
+            "name": "lint-mingw",
             "displayName": "Clang Tidy (MinGW)",
             "description": "Build with debug symbols and Clang-Tidy enabled (MinGW)",
             "inherits": "clang-debug-mingw",
@@ -144,36 +148,12 @@
     ],
     "buildPresets": [
         {
-            "name": "debug",
-            "configurePreset": "debug"
-        },
-        {
-            "name": "release",
-            "configurePreset": "release"
-        },
-        {
             "name": "gcc-debug",
             "configurePreset": "gcc-debug"
         },
         {
             "name": "gcc-release",
             "configurePreset": "gcc-release"
-        },
-        {
-            "name": "clang-debug",
-            "configurePreset": "clang-debug"
-        },
-        {
-            "name": "clang-release",
-            "configurePreset": "clang-release"
-        },
-        {
-            "name": "msvc-debug",
-            "configurePreset": "msvc-debug"
-        },
-        {
-            "name": "msvc-release",
-            "configurePreset": "msvc-release"
         },
         {
             "name": "clang-debug-linux",
@@ -192,12 +172,20 @@
             "configurePreset": "clang-release-mingw"
         },
         {
-            "name": "tidy-linux",
-            "configurePreset": "tidy-linux"
+            "name": "msvc-debug",
+            "configurePreset": "msvc-debug"
         },
         {
-            "name": "tidy-mingw",
-            "configurePreset": "tidy-mingw"
+            "name": "msvc-release",
+            "configurePreset": "msvc-release"
+        },
+        {
+            "name": "lint-linux",
+            "configurePreset": "lint-linux"
+        },
+        {
+            "name": "lint-mingw",
+            "configurePreset": "lint-mingw"
         }
     ],
     "testPresets": [
@@ -218,22 +206,6 @@
             "configurePreset": "gcc-release"
         },
         {
-            "name": "clang-debug",
-            "configurePreset": "clang-debug"
-        },
-        {
-            "name": "clang-release",
-            "configurePreset": "clang-release"
-        },
-        {
-            "name": "msvc-debug",
-            "configurePreset": "msvc-debug"
-        },
-        {
-            "name": "msvc-release",
-            "configurePreset": "msvc-release"
-        },
-        {
             "name": "clang-debug-linux",
             "configurePreset": "clang-debug-linux"
         },
@@ -248,6 +220,14 @@
         {
             "name": "clang-release-mingw",
             "configurePreset": "clang-release-mingw"
+        },
+        {
+            "name": "msvc-debug",
+            "configurePreset": "msvc-debug"
+        },
+        {
+            "name": "msvc-release",
+            "configurePreset": "msvc-release"
         }
     ]
 }

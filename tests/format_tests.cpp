@@ -307,4 +307,147 @@ name = "TestObj")";
 }
 #endif
 
+// -----------------------------------------------------------------------------
+// Test Suite: Streamable (operator<<)
+// -----------------------------------------------------------------------------
+
+struct StreamableTestStruct
+{
+    int x;
+};
+
+std::ostream& operator<<(std::ostream& os, const StreamableTestStruct& s)
+{
+    return os << "StreamableTestStruct(x=" << s.x << ")";
+}
+
+TEST(FormatTests, Streamable_Ostream)
+{
+    std::string result = std::format("{}", StreamableTestStruct{ 42 });
+    std::string expected = "StreamableTestStruct(x=42)";
+    EXPECT_EQ(result, expected);
+}
+
+// -----------------------------------------------------------------------------
+// Test Suite: HasToString (toString(), to_string(), etc.)
+// -----------------------------------------------------------------------------
+
+struct ToStringTestStruct
+{
+    std::string toString() const { return "ToStringTestStruct"; }
+};
+
+TEST(FormatTests, HasToString_MemberToString)
+{
+    std::string result = std::format("{}", ToStringTestStruct{});
+    std::string expected = "ToStringTestStruct";
+    EXPECT_EQ(result, expected);
+}
+
+struct SnakeCaseToStringStruct
+{
+    std::string to_string() const { return "SnakeCaseToStringStruct"; }
+};
+
+TEST(FormatTests, HasToString_MemberSnakeCase)
+{
+    std::string result = std::format("{}", SnakeCaseToStringStruct{});
+    std::string expected = "SnakeCaseToStringStruct";
+    EXPECT_EQ(result, expected);
+}
+
+struct FreeToStringStruct
+{
+};
+
+const char* to_string(const FreeToStringStruct&) { return "FreeToStringStruct"; }
+
+TEST(FormatTests, HasToString_FreeFunction)
+{
+    std::string result = std::format("{}", FreeToStringStruct{});
+    std::string expected = "FreeToStringStruct";
+    EXPECT_EQ(result, expected);
+}
+
+struct StaticToStringStruct
+{
+    static constexpr std::string_view toString() { return "StaticToStringStruct"; }
+};
+
+TEST(FormatTests, HasToString_StaticToString)
+{
+    std::string result = std::format("{}", StaticToStringStruct{});
+    std::string expected = "StaticToStringStruct";
+    EXPECT_EQ(result, expected);
+}
+
+// -----------------------------------------------------------------------------
+// Test Suite: Format Priority
+// Priority: Adapter > Streamable > HasToString > Reflection
+// -----------------------------------------------------------------------------
+
+struct PriorityAdapter
+{
+    int val = 1;
+    std::string toString() const { return "ToString"; }
+};
+
+std::ostream& operator<<(std::ostream& os, const PriorityAdapter&) { return os << "Streamable"; }
+
+template<>
+struct fmtu::Adapter<PriorityAdapter>
+{
+    using Fields = std::tuple<fmtu::Field<"val", &PriorityAdapter::val>>;
+};
+
+TEST(FormatTests, Priority_Adapter)
+{
+    std::string result = std::format("{}", PriorityAdapter{});
+    std::string expected = "[ PriorityAdapter: { val: 1 } ]";
+    EXPECT_EQ(result, expected);
+}
+
+struct PriorityStreamable
+{
+    int val = 2;
+    std::string toString() const { return "ToString"; }
+};
+
+std::ostream& operator<<(std::ostream& os, const PriorityStreamable& s)
+{
+    return os << "Streamable " << s.val;
+}
+
+TEST(FormatTests, Priority_Streamable)
+{
+    std::string result = std::format("{}", PriorityStreamable{});
+    std::string expected = "Streamable 2";
+    EXPECT_EQ(result, expected);
+}
+
+struct PriorityToString
+{
+    int val = 3;
+    std::string toString() const { return "ToString " + std::to_string(val); }
+};
+
+TEST(FormatTests, Priority_ToString)
+{
+    std::string result = std::format("{}", PriorityToString{});
+    std::string expected = "ToString 3";
+    EXPECT_EQ(result, expected);
+}
+
+struct PriorityReflection
+{
+    int val = 4;
+};
+
+TEST(FormatTests, Priority_Reflection)
+{
+    std::string result = std::format("{}", PriorityReflection{});
+    std::string expected = "[ PriorityReflection: { val: 4 } ]";
+    EXPECT_EQ(result, expected);
+}
+
 // NOLINTEND

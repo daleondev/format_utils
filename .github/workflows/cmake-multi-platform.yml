@@ -49,52 +49,52 @@ jobs:
       matrix:
         include:
           # --- Linux ---
-          - name: "Linux GCC 14 Release"
+          - name: "Linux GCC 14 Release (Build and Test)"
             os: ubuntu-latest
             preset: gcc-release
             compiler_type: gcc
             build-and-test: true
             lint: false
 
-          - name: "Linux Clang 19 Release"
+          - name: "Linux Clang 19 Release (Build and Test)"
             os: ubuntu-latest
             preset: clang-release-linux
             compiler_type: clang
             build-and-test: true
             lint: false
 
-          - name: "Linux Clang-Tidy"
+          - name: "Linux Clang-Tidy (Lint)"
             os: ubuntu-latest
-            preset: tidy-linux
+            preset: lint-linux
             compiler_type: clang
             build-and-test: false
             lint: true
 
           # --- Windows ---
-          - name: "Windows MSVC Release"
+          - name: "Windows MSVC Release (Build and Test)"
             os: windows-latest
             preset: msvc-release
             compiler_type: msvc
             build-and-test: true
             lint: false
 
-          - name: "Windows MinGW GCC"
+          - name: "Windows MinGW GCC (Build and Test)"
             os: windows-latest
             preset: gcc-release
             compiler_type: mingw
             build-and-test: true
             lint: false
 
-          - name: "Windows Clang"
+          - name: "Windows Clang (Build and Test)"
             os: windows-latest
             preset: clang-release-mingw
             compiler_type: mingw
             build-and-test: true
             lint: false
 
-          - name: "Windows Clang-Tidy"
+          - name: "Windows Clang-Tidy (Lint)"
             os: windows-latest
-            preset: tidy-mingw
+            preset: lint-mingw
             compiler_type: mingw
             build-and-test: false
             lint: true
