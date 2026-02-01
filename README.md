@@ -230,11 +230,9 @@ int main()
 
 ## Installation
 
-Since format_utils is header-only, you can simply include the `format_utils.hpp` file in your project.
-
 ### CMake FetchContent
 
-You can easily include it in your CMake project:
+You can easily include format_utils with its necessary dependencies in your CMake project:
 
 ```cmake
 include(FetchContent)
@@ -249,9 +247,9 @@ FetchContent_MakeAvailable(format_utils)
 target_link_libraries(your_target PRIVATE format_utils::format_utils)
 ```
 
-The following CMake options are available:
-
 ### Available CMake Configuration Options
+
+The following CMake options are available:
 
 | Option | Description | Default |
 | :--- | :--- | :--- |
