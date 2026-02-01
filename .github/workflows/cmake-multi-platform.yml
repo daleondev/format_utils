@@ -21,7 +21,7 @@ on:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: read
@@ -54,21 +54,21 @@ jobs:
         include:
           # --- Linux ---
           - name: "Linux GCC 14 Release (Build and Test)"
-            os: ubuntu-latest
+            os: ubuntu-24.04
             preset: gcc-release
             compiler_type: gcc
             build-and-test: true
             lint: false
 
           - name: "Linux Clang 19 Release (Build and Test)"
-            os: ubuntu-latest
+            os: ubuntu-24.04
             preset: clang-release-linux
             compiler_type: clang
             build-and-test: true
             lint: false
 
           - name: "Linux Clang-Tidy (Lint)"
-            os: ubuntu-latest
+            os: ubuntu-24.04
             preset: lint-linux
             compiler_type: clang
             build-and-test: false
@@ -76,28 +76,28 @@ jobs:
 
           # --- Windows ---
           - name: "Windows MSVC Release (Build and Test)"
-            os: windows-latest
+            os: windows-2025
             preset: msvc-release
             compiler_type: msvc
             build-and-test: true
             lint: false
 
           - name: "Windows MinGW GCC (Build and Test)"
-            os: windows-latest
+            os: windows-2025
             preset: gcc-release
             compiler_type: mingw
             build-and-test: true
             lint: false
 
           - name: "Windows Clang (Build and Test)"
-            os: windows-latest
+            os: windows-2025
             preset: clang-release-mingw
             compiler_type: mingw
             build-and-test: true
             lint: false
 
           - name: "Windows Clang-Tidy (Lint)"
-            os: windows-latest
+            os: windows-2025
             preset: lint-mingw
             compiler_type: mingw
             build-and-test: false
@@ -164,7 +164,7 @@ jobs:
         run: ctest --preset ${{ matrix.preset }} --output-on-failure
 
   publish-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build-lint-and-test
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -183,7 +183,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   required-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build-lint-and-test
     if: always()
     steps:
