@@ -254,7 +254,8 @@ struct Config
 
     std::string toString() const
     {
-        return "Config with id: " + std::to_string(id) + " has " + std::to_string(values.size()) + " values";
+        return "Config with id: " + std::to_string(id) + 
+            " has " + std::to_string(values.size()) + " values";
     }
 };
 
