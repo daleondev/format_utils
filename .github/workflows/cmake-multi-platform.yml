@@ -6,31 +6,38 @@ on:
       - "main"
       - "develop"
       - "release/*"
-    paths-ignore:
-      - "README.md"
-      - "LICENSE"
-      - "THIRD-PARTY-NOTICES.txt"
-      - ".gitignore"
-      - ".clang-format"
 
   pull_request:
     branches:
       - "main"
       - "develop"
       - "release/*"
-    paths-ignore:
-      - "README.md"
-      - "LICENSE"
-      - "THIRD-PARTY-NOTICES.txt"
-      - ".gitignore"
-      - ".clang-format"
 
   workflow_dispatch:
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.filter.outputs.should_build }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            should_build:
+              - '!README.md'
+              - '!LICENSE'
+              - '!THIRD-PARTY-NOTICES.txt'
+              - '!.gitignore'
+              - '!.clang-format'
+
   build-lint-and-test:
-    name: ${{ matrix.os }} - ${{ matrix.preset }}
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+   
+    needs: changes
+    if: needs.changes.outputs.should_build
 
     strategy:
       fail-fast: false
@@ -154,8 +161,13 @@ jobs:
     steps:
       - name: Check Build Status
         run: |
-          if [[ "${{ needs.build-lint-and-test.result }}" != "success" ]]; then
-            echo "One or more builds failed!"
+          RESULT="${{ needs.build-lint-and-test.result }}"
+          echo "Build Matrix Result: $RESULT"
+
+          if [[ "$RESULT" == "success" || "$RESULT" == "skipped" ]]; then
+            echo "Check Passed!"
+            exit 0
+          else
+            echo "Build failed or was cancelled."
             exit 1
           fi
-          echo "All builds passed successfully."
