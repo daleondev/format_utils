@@ -93,7 +93,10 @@ class User
 template<>
 struct fmtu::Adapter<User>
 {
-    using Fields = std::tuple<fmtu::Field<"name", &User::getName>, fmtu::Field<"role", &User::getRole>>;
+    using Fields = std::tuple<
+        fmtu::Field<"name", &User::getName>, 
+        fmtu::Field<"role", &User::getRole>
+    >;
 };
 
 int main()
@@ -170,9 +173,6 @@ If enabled (via CMake options `FMTU_ENABLE_JSON`, etc.), you can format objects 
 *   `{:t}` - TOML
 
 ```cpp
-#include <memory>
-#include <optional>
-
 struct Point
 {
     int x;
@@ -194,7 +194,8 @@ int main()
 
     std::println("{:j}", cfg);
     // Output:
-    // {"id":101,"name":"SimulationConfig","values":[0.5,1.2,3.14],"resolution":{"x":1920,"y":1080},"is_active":true}
+    // {"id":101,"name":"SimulationConfig","values":[0.5,1.2,3.14],
+    // "resolution":{"x":1920,"y":1080},"is_active":true}
 
     std::println("{:pj}", cfg);
     /* Output:
@@ -262,18 +263,6 @@ The following CMake options are available:
 
 ## Build Instructions
 
-### Available CMake Presets
-
-| Preset Name | Description | Compiler |
-| :--- | :--- | :--- |
-| `debug` / `release` | System default compiler | Default |
-| `gcc-debug` / `gcc-release` | Build using GCC | `g++` |
-| `clang-debug` / `clang-release` | Build using Clang | `clang++` |
-| `msvc-debug` / `msvc-release` | Build using MSVC | `cl` |
-| `clang-debug-linux` / `clang-release-linux` | Build using Clang with libc++ | `clang++` (`-stdlib=libc++`) |
-| `clang-debug-mingw` / `clang-release-mingw` | Build using Clang for MinGW | `clang++` (MinGW target) |
-| `tidy-linux` / `tidy-mingw` | Static analysis with Clang-Tidy | `clang-tidy` |
-
 ### Build the sample, and tests:
 
 ```bash
@@ -305,6 +294,18 @@ cmake --preset tidy-linux
 # cmake --build --preset tidy-<platform>
 cmake --build --preset tidy-linux --clean-first
 ```
+
+### Available CMake Presets
+
+| Preset Name | Description | Compiler |
+| :--- | :--- | :--- |
+| `debug` / `release` | System default compiler | Default |
+| `gcc-debug` / `gcc-release` | Build using GCC | `g++` |
+| `clang-debug` / `clang-release` | Build using Clang | `clang++` |
+| `msvc-debug` / `msvc-release` | Build using MSVC | `cl` |
+| `clang-debug-linux` / `clang-release-linux` | Build using Clang with libc++ | `clang++` (`-stdlib=libc++`) |
+| `clang-debug-mingw` / `clang-release-mingw` | Build using Clang for MinGW | `clang++` (MinGW target) |
+| `tidy-linux` / `tidy-mingw` | Static analysis with Clang-Tidy | `clang-tidy` |
 
 ## Compiler Support
 
