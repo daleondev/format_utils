@@ -14,29 +14,8 @@ Key features include:
 
 ## Requirements
 
-*   **C++23** compatible compiler (GCC 13+, Clang 16+, MSVC 19.36+).
+*   **C++23** compatible compiler (GCC 14+, Clang 18+, MSVC 19.36+).
 *   **CMake 3.24+**
-
-## Installation
-
-Since format_utils is header-only, you can simply include the `format_utils.hpp` file in your project.
-
-### CMake FetchContent
-
-You can easily include it in your CMake project:
-
-```cmake
-include(FetchContent)
-
-FetchContent_Declare(
-    format_utils
-    GIT_REPOSITORY https://github.com/daleondev/format_utils.git
-    GIT_TAG        main
-)
-FetchContent_MakeAvailable(format_utils)
-
-target_link_libraries(your_target PRIVATE format_utils::format_utils)
-```
 
 ## Usage Examples
 
@@ -248,7 +227,28 @@ int main()
 }
 ```
 
-## Build Instructions
+## Installation
+
+Since format_utils is header-only, you can simply include the `format_utils.hpp` file in your project.
+
+### CMake FetchContent
+
+You can easily include it in your CMake project:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+    format_utils
+    GIT_REPOSITORY https://github.com/daleondev/format_utils.git
+    GIT_TAG        main
+)
+FetchContent_MakeAvailable(format_utils)
+
+target_link_libraries(your_target PRIVATE format_utils::format_utils)
+```
+
+The following CMake options are available:
 
 ### Available CMake Configuration Options
 
@@ -259,6 +259,8 @@ int main()
 | `FMTU_ENABLE_YAML` | Enable YAML support via Glaze | `OFF` |
 | `BUILD_SAMPLES` | Build sample executables | `ON` |
 | `BUILD_TESTS` | Build unit tests | `ON` |
+
+## Build Instructions
 
 ### Available CMake Presets
 
