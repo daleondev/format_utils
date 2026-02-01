@@ -1,6 +1,6 @@
 # format_utils
 
-[![Multi-Platform CI (Presets)](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml)
+[![Multi-Platform CI/CD](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/daleondev/format_utils/actions/workflows/cmake-multi-platform.yml)
 
 **format_utils** is a modern C++23 header-only library that extends `std::format` with powerful capabilities for automatic reflection, serialization, and formatted output of user-defined types. It seamlessly integrates with `std::format`, making it effortless to print complex data structures, including aggregates, classes with private members, enums, pointers, and optional values.
 
@@ -14,29 +14,8 @@ Key features include:
 
 ## Requirements
 
-*   **C++23** compatible compiler (GCC 13+, Clang 16+, MSVC 19.36+).
+*   **C++23** compatible compiler (GCC 14+, Clang 18+, MSVC 19.36+).
 *   **CMake 3.24+**
-
-## Installation
-
-Since format_utils is header-only, you can simply include the `format_utils.hpp` file in your project.
-
-### CMake FetchContent
-
-You can easily include it in your CMake project:
-
-```cmake
-include(FetchContent)
-
-FetchContent_Declare(
-    format_utils
-    GIT_REPOSITORY https://github.com/daleondev/format_utils.git
-    GIT_TAG        main
-)
-FetchContent_MakeAvailable(format_utils)
-
-target_link_libraries(your_target PRIVATE format_utils::format_utils)
-```
 
 ## Usage Examples
 
@@ -114,7 +93,10 @@ class User
 template<>
 struct fmtu::Adapter<User>
 {
-    using Fields = std::tuple<fmtu::Field<"name", &User::getName>, fmtu::Field<"role", &User::getRole>>;
+    using Fields = std::tuple<
+        fmtu::Field<"name", &User::getName>, 
+        fmtu::Field<"role", &User::getRole>
+    >;
 };
 
 int main()
@@ -191,9 +173,6 @@ If enabled (via CMake options `FMTU_ENABLE_JSON`, etc.), you can format objects 
 *   `{:t}` - TOML
 
 ```cpp
-#include <memory>
-#include <optional>
-
 struct Point
 {
     int x;
@@ -215,7 +194,8 @@ int main()
 
     std::println("{:j}", cfg);
     // Output:
-    // {"id":101,"name":"SimulationConfig","values":[0.5,1.2,3.14],"resolution":{"x":1920,"y":1080},"is_active":true}
+    // {"id":101,"name":"SimulationConfig","values":[0.5,1.2,3.14],
+    // "resolution":{"x":1920,"y":1080},"is_active":true}
 
     std::println("{:pj}", cfg);
     /* Output:
@@ -248,7 +228,67 @@ int main()
 }
 ```
 
-## Build Instructions
+### 6. Custom formatting
+
+Custom formatting is possible for classes by either overloading the `operator<<` or defining a `toString()`-method.
+
+```cpp
+struct Point
+{
+    int x;
+    int y;
+};
+
+std::ostream& operator<<(std::ostream& os, const Point& p)
+{
+    return os << "Resolution is " << p.x << "x" << p.y;
+}
+
+struct Config
+{
+    int id;
+    std::string name;
+    std::vector<double> values;
+    Point resolution;
+    bool is_active;
+
+    std::string toString() const
+    {
+        return "Config with id: " + std::to_string(id) + 
+            " has " + std::to_string(values.size()) + " values";
+    }
+};
+
+int main()
+{
+    Config cfg{ 101, "SimulationConfig", { 0.5, 1.2, 3.14 }, { 1920, 1080 }, true };
+
+    std::println("{}", cfg);
+    // Output: Config with id: 101 has 3 values
+
+    std::println("{}", cfg.resolution);
+    // Output: Resolution is 1920x1080
+}
+```
+
+## Installation
+
+### CMake FetchContent
+
+You can easily include format_utils with its necessary dependencies in your CMake project:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+    format_utils
+    GIT_REPOSITORY https://github.com/daleondev/format_utils.git
+    GIT_TAG        main
+)
+FetchContent_MakeAvailable(format_utils)
+
+target_link_libraries(your_target PRIVATE format_utils::format_utils)
+```
 
 ### Available CMake Configuration Options
 
@@ -260,19 +300,9 @@ int main()
 | `BUILD_SAMPLES` | Build sample executables | `ON` |
 | `BUILD_TESTS` | Build unit tests | `ON` |
 
-### Available CMake Presets
+## Build Instructions
 
-| Preset Name | Description | Compiler |
-| :--- | :--- | :--- |
-| `debug` / `release` | System default compiler | Default |
-| `gcc-debug` / `gcc-release` | Build using GCC | `g++` |
-| `clang-debug` / `clang-release` | Build using Clang | `clang++` |
-| `msvc-debug` / `msvc-release` | Build using MSVC | `cl` |
-| `clang-debug-linux` / `clang-release-linux` | Build using Clang with libc++ | `clang++` (`-stdlib=libc++`) |
-| `clang-debug-mingw` / `clang-release-mingw` | Build using Clang for MinGW | `clang++` (MinGW target) |
-| `tidy-linux` / `tidy-mingw` | Static analysis with Clang-Tidy | `clang-tidy` |
-
-### Build the sample, and tests:
+### Build the sample and tests:
 
 ```bash
 # cmake --preset <compiler>-<build_type>-<platform>
@@ -298,11 +328,21 @@ ctest --preset clang-release-linux
 
 ```bash
 # cmake --preset tidy-<platform>
-cmake --preset tidy-linux
+cmake --preset lint-linux
 
 # cmake --build --preset tidy-<platform>
-cmake --build --preset tidy-linux --clean-first
+cmake --build --preset lint-linux --clean-first
 ```
+
+### Available CMake Presets
+
+| Preset Name | Description | Compiler |
+| :--- | :--- | :--- |
+| `gcc-debug` / `gcc-release` | Build using GCC | `g++` |
+| `clang-debug-linux` / `clang-release-linux` | Build using Clang with libc++ | `clang++` (`-stdlib=libc++`) |
+| `clang-debug-mingw` / `clang-release-mingw` | Build using Clang for MinGW | `clang++` (MinGW target) |
+| `msvc-debug` / `msvc-release` | Build using MSVC | `cl` |
+| `lint-linux` / `lint-mingw` | Static analysis with Clang-Tidy | `clang-tidy` |
 
 ## Compiler Support
 

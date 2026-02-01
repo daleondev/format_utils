@@ -64,6 +64,45 @@ enum class Status
     Failed
 };
 
+// ==========================================
+// 4. Manually formatted classes (ostream/toString())
+// ==========================================
+
+class Storage
+{
+  public:
+    Storage(const char* data, size_t size)
+      : m_size(size)
+    {
+        std::copy_n(data, size, m_data.data());
+    }
+
+    size_t size() const { return m_size; }
+    const char* rawData() const { return m_data.data(); }
+
+  private:
+    size_t m_size;
+    std::array<char, 20> m_data{};
+};
+
+std::ostream& operator<<(std::ostream& os, const Storage& s)
+{
+    return os << "The storage contains: '" << std::string(s.rawData(), s.size()) << "'";
+}
+
+class Platform
+{
+  public:
+    const char* toString() const
+    {
+#ifdef _WIN32
+        return "The current platform is Windows";
+#else
+        return "The current platform is Linux";
+#endif
+    }
+};
+
 int main()
 {
     std::println("=========================================");
@@ -147,6 +186,18 @@ int main()
     // Smart Pointer
     smart_ptr.reset(raw_ptr);
     std::println("Smart Ptr:           {}", smart_ptr);
+
+    std::println("\n=========================================");
+
+    // -------------------------------------------------
+    // Scenario 6: Manual formatting (ostream/toString())
+    // -------------------------------------------------
+    std::println("--- 6. Manual formatting (ostream/toString()) ---");
+
+    Storage store{ "Hello World!\0", 13 };
+    std::println("ostream:             {}", store);
+
+    std::println("toString():          {}", Platform{});
 
     std::println("\n=========================================");
 
