@@ -285,23 +285,21 @@ ctest --preset clang-release-linux
 
 ```bash
 # cmake --preset tidy-<platform>
-cmake --preset tidy-linux
+cmake --preset lint-linux
 
 # cmake --build --preset tidy-<platform>
-cmake --build --preset tidy-linux --clean-first
+cmake --build --preset lint-linux --clean-first
 ```
 
 ### Available CMake Presets
 
 | Preset Name | Description | Compiler |
 | :--- | :--- | :--- |
-| `debug` / `release` | System default compiler | Default |
 | `gcc-debug` / `gcc-release` | Build using GCC | `g++` |
-| `clang-debug` / `clang-release` | Build using Clang | `clang++` |
-| `msvc-debug` / `msvc-release` | Build using MSVC | `cl` |
 | `clang-debug-linux` / `clang-release-linux` | Build using Clang with libc++ | `clang++` (`-stdlib=libc++`) |
 | `clang-debug-mingw` / `clang-release-mingw` | Build using Clang for MinGW | `clang++` (MinGW target) |
-| `tidy-linux` / `tidy-mingw` | Static analysis with Clang-Tidy | `clang-tidy` |
+| `msvc-debug` / `msvc-release` | Build using MSVC | `cl` |
+| `lint-linux` / `lint-mingw` | Static analysis with Clang-Tidy | `clang-tidy` |
 
 ## Compiler Support
 

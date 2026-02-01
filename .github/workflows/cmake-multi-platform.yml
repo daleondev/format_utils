@@ -65,7 +65,7 @@ jobs:
 
           - name: "Linux Clang-Tidy"
             os: ubuntu-latest
-            preset: tidy-linux
+            preset: lint-linux
             compiler_type: clang
             build-and-test: false
             lint: true
@@ -94,7 +94,7 @@ jobs:
 
           - name: "Windows Clang-Tidy"
             os: windows-latest
-            preset: tidy-mingw
+            preset: lint-mingw
             compiler_type: mingw
             build-and-test: false
             lint: true

@@ -20,6 +20,7 @@
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <sstream>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -289,6 +290,24 @@ namespace fmtu
         };
 
         template<typename T>
+        concept Streamable = requires(std::ostream& os, const T& t) {
+            { os << t } -> std::convertible_to<std::ostream&>;
+        } && !is_std_type<std::remove_cvref_t<T>>();
+
+        template<typename T>
+        concept HasToString = requires(const T& t) {
+            requires(requires {
+                { t.to_string() } -> std::convertible_to<std::string_view>;
+            } || requires {
+                { t.toString() } -> std::convertible_to<std::string_view>;
+            } || requires {
+                { to_string(t) } -> std::convertible_to<std::string_view>;
+            } || requires {
+                { toString(t) } -> std::convertible_to<std::string_view>;
+            });
+        } && !is_std_type<std::remove_cvref_t<T>>();
+
+        template<typename T>
         struct is_array : std::false_type // NOLINT(readability-identifier-naming)
         {
         };
@@ -436,7 +455,7 @@ namespace fmtu
         template<typename T>
         concept Reflectable =
           std::is_class_v<std::remove_cvref_t<T>> && std::is_aggregate_v<std::remove_cvref_t<T>> &&
-          !is_std_type<std::remove_cvref_t<T>>() && !HasAdapter<T>;
+          !is_std_type<std::remove_cvref_t<T>>() && !HasAdapter<T> && !Streamable<T> && !HasToString<T>;
 
         template<Reflectable T>
         consteval auto reflect_names()
@@ -1093,6 +1112,65 @@ struct std::formatter<T> : std::formatter<typename T::element_type*>
     auto format(const T& t, Ctx& ctx) const -> Ctx::iterator
     {
         return std::formatter<typename T::element_type*>::format(t.get(), ctx);
+    }
+};
+
+// template<fmtu::detail::Streamable T>
+// // requires(!fmtu::detail::HasAdapter<T>)
+// struct std::formatter<T>
+// {
+//     template<typename Ctx>
+//     constexpr auto parse(Ctx& ctx) -> Ctx::iterator
+//     {
+//         // fmtu::detail::FmtOpts fmt_opts;
+//         // return fmtu::detail::parse_fmt_opts<fmtu::detail::FmtOpts{}>(ctx, fmt_opts);
+//         return ctx.end();
+//     }
+
+//     template<typename Ctx>
+//     auto format(T t, Ctx& ctx) const -> Ctx::iterator
+//     {
+//         (void)t;
+//         // std::ostringstream oss;
+//         // oss << t;
+//         // return std::format_to(ctx.out(), "{}", oss.str());
+//         return std::format_to(ctx.out(), "");
+//     }
+// };
+
+template<fmtu::detail::HasToString T>
+    requires(!fmtu::detail::HasAdapter<T>)
+struct std::formatter<T>
+{
+    template<typename Ctx>
+    constexpr auto parse(Ctx& ctx) -> Ctx::iterator
+    {
+        fmtu::detail::FmtOpts fmt_opts;
+        return fmtu::detail::parse_fmt_opts<fmtu::detail::FmtOpts{}>(ctx, fmt_opts);
+    }
+
+    template<typename Ctx>
+    auto format(T t, Ctx& ctx) const -> Ctx::iterator
+    {
+        if constexpr (requires { std::decay_t<decltype(t)>::to_string(); }) {
+            return std::format_to(ctx.out(), "{}", std::decay_t<decltype(t)>::to_string());
+        }
+        else if constexpr (requires { std::decay_t<decltype(t)>::toString(); }) {
+            return std::format_to(ctx.out(), "{}", std::decay_t<decltype(t)>::toString());
+        }
+        else if constexpr (requires { t.to_string(); }) {
+            return std::format_to(ctx.out(), "{}", t.to_string());
+        }
+        else if constexpr (requires { t.toString(); }) {
+            return std::format_to(ctx.out(), "{}", t.toString());
+        }
+        else if constexpr (requires { to_string(t); }) {
+            return std::format_to(ctx.out(), "{}", to_string(t));
+        }
+        else if constexpr (requires { toString(t); }) {
+            return std::format_to(ctx.out(), "{}", toString(t));
+        }
+        throw std::format_error("Unreachable");
     }
 };
 
