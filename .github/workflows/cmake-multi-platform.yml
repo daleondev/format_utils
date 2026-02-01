@@ -42,7 +42,7 @@ jobs:
     runs-on: ${{ matrix.os }}
    
     needs: changes
-    if: needs.changes.outputs.should_build
+    if: needs.changes.outputs.should_build == 'true'
 
     strategy:
       fail-fast: false
