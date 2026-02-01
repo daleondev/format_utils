@@ -185,7 +185,7 @@ namespace fmtu
                         if constexpr (!struct_type.starts_with("class "sv)) {
                             throw std::exception();
                         }
-                        auto diff{ "struct"sv.length() - "class"sv.length() };
+                        auto diff{ std::size("struct"sv) - std::size("class"sv) };
                         return function_name.substr(type_name_info::begin - diff,
                                                     function_name.find(type_name_info::end) -
                                                       type_name_info::begin + diff);
@@ -235,7 +235,7 @@ namespace fmtu
                         if constexpr (!struct_type.starts_with("class "sv)) {
                             throw std::exception();
                         }
-                        auto diff{ "struct"sv.length() - "class"sv.length() };
+                        auto diff{ std::size("struct"sv) - std::size("class"sv) };
                         return function_name.substr(type_name_info::begin - diff,
                                                     function_name.find(type_name_info::end) -
                                                       type_name_info::begin + diff);
@@ -519,19 +519,19 @@ namespace fmtu
         consteval auto class_format_size() -> size_t
         {
             auto size{ 0UZ };
-            size += "[ "sv.length();
+            size += std::size("[ "sv);
             size += Info::NAME.size();
-            size += ": {{ "sv.length();
+            size += std::size(": {{ "sv);
 
             for (auto i{ 0UZ }; i < Info::numMembers(); ++i) {
                 size += Info::MEMBER_NAMES[i].size();
-                size += ": {}"sv.length();
+                size += std::size(": {}"sv);
                 if (i < Info::numMembers() - 1) {
-                    size += ", "sv.length();
+                    size += std::size(", "sv);
                 }
             }
 
-            size += " }} ]"sv.length();
+            size += std::size(" }} ]"sv);
             return size;
         }
 
@@ -571,10 +571,10 @@ namespace fmtu
             auto size{ 0UZ };
             if constexpr (Level == 0) {
                 size += Info::NAME.size();
-                size += ": {{\n"sv.length();
+                size += std::size(": {{\n"sv);
             }
             else {
-                size += "{{\n"sv.length();
+                size += std::size("{{\n"sv);
             }
 
             [&]<size_t... Is>(std::index_sequence<Is...>) -> void {
@@ -584,27 +584,26 @@ namespace fmtu
                     size += (Level + 1) * PRETTY_INDENT.size();
                     size += Info::MEMBER_NAMES[i].size();
                     if constexpr (HasAdapter<MemberType>) {
-                        size += ": "sv.length();
+                        size += std::size(": "sv);
                         size += class_pretty_format_size<AdapterInfo<MemberType>, Level + 1>();
                     }
                     else if constexpr (Reflectable<MemberType>) {
-                        size += ": "sv.length();
+                        size += std::size(": "sv);
                         size += class_pretty_format_size<ReflectableInfo<MemberType>, Level + 1>();
                     }
                     else {
-                        size += ": {}"sv.length();
+                        size += std::size(": {}"sv);
                     }
                     if constexpr (i < Info::numMembers() - 1) {
-                        size += ","sv.length();
+                        size += std::size(","sv);
                     }
-                    size += "\n"sv.length();
+                    size += std::size("\n"sv);
                 }(std::integral_constant<size_t, Is>{}), ...);
             }(std::make_index_sequence<Info::numMembers()>{});
 
             size += Level * PRETTY_INDENT.size();
-            size += "}}"sv.length();
+            size += std::size("}}"sv);
             return size;
-            return 0;
         }
 
         template<FormatInfo Info, size_t Level = 0>
