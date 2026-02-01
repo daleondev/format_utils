@@ -307,4 +307,83 @@ name = "TestObj")";
 }
 #endif
 
+// -----------------------------------------------------------------------------
+// Test Suite: Streamable (operator<<)
+// -----------------------------------------------------------------------------
+
+struct StreamableTestStruct
+{
+    int x;
+};
+
+std::ostream& operator<<(std::ostream& os, const StreamableTestStruct& s)
+{
+    return os << "StreamableTestStruct(x=" << s.x << ")";
+}
+
+TEST(FormatTests, Streamable_Ostream)
+{
+    StreamableTestStruct s{ 42 };
+    std::string result = std::format("{}", s);
+    std::string expected = "StreamableTestStruct(x=42)";
+    EXPECT_EQ(result, expected);
+}
+
+// -----------------------------------------------------------------------------
+// Test Suite: HasToString (toString(), to_string(), etc.)
+// -----------------------------------------------------------------------------
+
+struct ToStringTestStruct
+{
+    std::string toString() const { return "ToStringTestStruct"; }
+};
+
+TEST(FormatTests, HasToString_MemberToString)
+{
+    ToStringTestStruct s;
+    std::string result = std::format("{}", s);
+    std::string expected = "ToStringTestStruct";
+    EXPECT_EQ(result, expected);
+}
+
+struct SnakeCaseToStringStruct
+{
+    std::string to_string() const { return "SnakeCaseToStringStruct"; }
+};
+
+TEST(FormatTests, HasToString_MemberSnakeCase)
+{
+    SnakeCaseToStringStruct s;
+    std::string result = std::format("{}", s);
+    std::string expected = "SnakeCaseToStringStruct";
+    EXPECT_EQ(result, expected);
+}
+
+struct FreeToStringStruct
+{
+};
+
+const char* to_string(const FreeToStringStruct&) { return "FreeToStringStruct"; }
+
+TEST(FormatTests, HasToString_FreeFunction)
+{
+    FreeToStringStruct s;
+    std::string result = std::format("{}", s);
+    std::string expected = "FreeToStringStruct";
+    EXPECT_EQ(result, expected);
+}
+
+struct StaticToStringStruct
+{
+    static constexpr std::string_view toString() { return "StaticToStringStruct"; }
+};
+
+TEST(FormatTests, HasToString_StaticToString)
+{
+    StaticToStringStruct s;
+    std::string result = std::format("{}", s);
+    std::string expected = "StaticToStringStruct";
+    EXPECT_EQ(result, expected);
+}
+
 // NOLINTEND
