@@ -1139,7 +1139,7 @@ struct std::formatter<T>
 };
 
 template<fmtu::detail::HasToString T>
-    requires(!fmtu::detail::HasAdapter<T>)
+    requires(!fmtu::detail::HasAdapter<T> && !fmtu::detail::Streamable<T>)
 struct std::formatter<T>
 {
     template<typename Ctx>
